@@ -1,9 +1,10 @@
 
 # 1) load libraries ####
 library(tidyverse)  # general
+library(broom)      # exponentiate log-odds ratio
 #note: download and run process script (https://www.processmacro.org/download.html) 
 
-# 2) load data ####
+# 2) load and clean baseline data ####
 CLSA.Com.baseline <-read_csv("2304007_UOttawa_MBoisgontier_Baseline_CoPv7.CSV")
 CLSA.Tra.baseline <-read_csv("2304007_UOttawa_MBoisgontier_Baseline_Trav4.CSV")
 CLSA.baseline.raw <- merge(CLSA.Com.baseline, CLSA.Tra.baseline, all=TRUE)
@@ -12,40 +13,24 @@ CLSA.baseline <- CLSA.baseline.raw %>%
   dplyr::select(entity_id, PA2_SIT_MCQ, PA2_WALK_MCQ, PA2_LSPRT_MCQ, PA2_MSPRT_MCQ, 
          PA2_SSPRT_MCQ, PA2_EXER_MCQ, PA2_LTHSWK_MCQ, PA2_HVYHSWK_MCQ, 
          PA2_HMREPAIR_MCQ, PA2_HVYODA_MCQ, PA2_LTODA_MCQ, PA2_CRPRSN_MCQ, 
-         PA2_WRK_MCQ, HUP_FREE_MCQ,DEP_CESD10_COM, DEP_CESD10_TRM,  FUL_SHLD_COM,
-         FUL_STOOP_COM, FUL_PUSH_COM, FUL_LFT10_COM, FUL_HDLG_COM, FUL_ST15_COM,
-         FUL_SIT1H_COM, FUL_STDUP_COM, FUL_FSTR_COM, FUL_WK23B_COM, FUL_MKBED_COM,
-         FUL_WSHBK_COM, FUL_KNCUT_COM, FUL_FORC_COM, FUL_SHLD_TRM, FUL_STOOP_TRM,
-         FUL_PUSH_TRM, FUL_LFT10_TRM, FUL_HDLG_TRM, FUL_ST15_TRM, FUL_SIT1H_TRM,
-         FUL_STDUP_TRM, FUL_FSTR_TRM, FUL_WK23B_TRM, FUL_MKBED_TRM, FUL_WSHBK_TRM,
-         FUL_KNCUT_TRM, FUL_FORC_TRM, ADL_DCLS_COM, ADL_DCLS_TRM, HUP_PRVACT_MCQ,
+         PA2_WRK_MCQ, HUP_FREE_MCQ,DEP_CESD10_COM, DEP_CESD10_TRM, ADL_DCLS_COM, ADL_DCLS_TRM, HUP_PRVACT_MCQ,
          CCC_RA_COM, CCT_RA_TRM, PA2_WALKHR_MCQ, PA2_LSPRTHR_MCQ, PA2_MSPRTHR_MCQ,
          PA2_SSPRTHR_MCQ, PA2_EXERHR_MCQ, GEN_DHDI_COM, GEN_DHDI_TRM,
          CCC_OAHAND_COM, CCT_OAHAND_TRM, CCC_OAHIP_COM, CCT_OAHIP_TRM, CCC_OAKNEE_COM,
-         CCT_OAKNEE_TRM, CCC_ARTOT_COM, CCT_OTART_TRM) %>%
+         CCT_OAKNEE_TRM, CCC_ARTOT_COM, CCT_OTART_TRM, SEX_ASK_COM, SEX_ASK_TRM,
+         INC_TOT_COM, INC_TOT_TRM, AGE_GRP_COM, AGE_GRP_TRM) %>%
   # coalesce columns from comprehensive (COM) and tracking (TRM) surveys
   mutate(DEP_CESD10 = coalesce(DEP_CESD10_COM, DEP_CESD10_TRM),
-         FUL_SHLD = coalesce(FUL_SHLD_COM, FUL_SHLD_TRM),
-         FUL_STOOP = coalesce(FUL_STOOP_COM, FUL_STOOP_TRM),
-         FUL_PUSH = coalesce(FUL_PUSH_COM, FUL_PUSH_TRM),
-         FUL_LFT10 = coalesce(FUL_LFT10_COM, FUL_LFT10_TRM),
-         FUL_HDLG = coalesce(FUL_HDLG_COM, FUL_HDLG_TRM),
-         FUL_ST15 = coalesce(FUL_ST15_COM, FUL_ST15_TRM),
-         FUL_SIT1H = coalesce(FUL_SIT1H_COM, FUL_SIT1H_TRM),
-         FUL_STDUP = coalesce(FUL_STDUP_COM, FUL_STDUP_TRM),
-         FUL_FSTR = coalesce(FUL_FSTR_COM, FUL_FSTR_TRM),
-         FUL_WK23B = coalesce(FUL_WK23B_COM, FUL_WK23B_TRM),
-         FUL_MKBED = coalesce(FUL_MKBED_COM, FUL_MKBED_TRM),
-         FUL_WSHBK = coalesce(FUL_WSHBK_COM, FUL_WSHBK_TRM),
-         FUL_KNCUT = coalesce(FUL_KNCUT_COM, FUL_KNCUT_TRM),
-         FUL_FORC = coalesce(FUL_FORC_COM, FUL_FORC_TRM),
          ADL_DCLS = coalesce(ADL_DCLS_COM, ADL_DCLS_TRM),
          CCC_RA = coalesce(CCC_RA_COM, CCT_RA_TRM),
          CCC_OAHAND = coalesce(CCC_OAHAND_COM, CCT_OAHAND_TRM),
          CCC_OAHIP = coalesce(CCC_OAHIP_COM, CCT_OAHIP_TRM),
          CCC_OAKNEE = coalesce(CCC_OAKNEE_COM, CCT_OAKNEE_TRM),
          CCC_ARTOT = coalesce(CCC_ARTOT_COM, CCT_OTART_TRM),
-         GEN_DHDI = coalesce(GEN_DHDI_COM, GEN_DHDI_TRM)) %>%
+         GEN_DHDI = coalesce(GEN_DHDI_COM, GEN_DHDI_TRM),
+         SEX_ASK = coalesce(SEX_ASK_COM, SEX_ASK_TRM),
+         INC_TOT =  coalesce(INC_TOT_COM, INC_TOT_TRM),
+         AGE_GRP = coalesce(AGE_GRP_COM, AGE_GRP_TRM)) %>%
   # replace non-response/I-dont-know values with NA
   mutate(PA2_SIT_MCQ = replace(PA2_SIT_MCQ, PA2_SIT_MCQ %in% c(8,9), NA),
          PA2_WALK_MCQ = replace(PA2_WALK_MCQ, PA2_WALK_MCQ %in% c(8,9), NA),
@@ -62,20 +47,6 @@ CLSA.baseline <- CLSA.baseline.raw %>%
          PA2_WRK_MCQ = replace(PA2_WRK_MCQ, PA2_WRK_MCQ %in% c(8,9), NA),
          HUP_FREE_MCQ = replace(HUP_FREE_MCQ, HUP_FREE_MCQ %in% c(8,9), NA),
          DEP_CESD10 = replace(DEP_CESD10, DEP_CESD10 %in% c(99,-88), NA),
-         FUL_SHLD =  replace(FUL_SHLD , FUL_SHLD  %in% c(8,9), NA), 
-         FUL_STOOP = replace(FUL_STOOP, FUL_STOOP %in% c(8,9), NA),
-         FUL_PUSH =  replace(FUL_PUSH , FUL_PUSH  %in% c(8,9), NA),
-         FUL_LFT10 = replace(FUL_LFT10, FUL_LFT10 %in% c(8,9), NA),
-         FUL_HDLG =  replace(FUL_HDLG , FUL_HDLG  %in% c(8,9), NA),
-         FUL_ST15 =  replace(FUL_ST15 , FUL_ST15  %in% c(8,9), NA),
-         FUL_SIT1H = replace(FUL_SIT1H, FUL_SIT1H %in% c(8,9), NA),
-         FUL_STDUP = replace(FUL_STDUP, FUL_STDUP %in% c(8,9), NA),
-         FUL_FSTR =  replace(FUL_FSTR , FUL_FSTR  %in% c(8,9), NA),
-         FUL_WK23B = replace(FUL_WK23B, FUL_WK23B %in% c(8,9), NA),
-         FUL_MKBED = replace(FUL_MKBED, FUL_MKBED %in% c(8,9), NA),
-         FUL_WSHBK = replace(FUL_WSHBK, FUL_WSHBK %in% c(8,9), NA),
-         FUL_KNCUT = replace(FUL_KNCUT, FUL_KNCUT %in% c(8,9), NA),
-         FUL_FORC =  replace(FUL_FORC , FUL_FORC  %in% c(8,9), NA),
          PA2_WALKHR_MCQ =  replace(PA2_WALKHR_MCQ , PA2_WALKHR_MCQ  %in% c(8,9), NA),
          PA2_LSPRTHR_MCQ =  replace(PA2_LSPRTHR_MCQ , PA2_LSPRTHR_MCQ  %in% c(8,9), NA),
          PA2_MSPRTHR_MCQ =  replace(PA2_MSPRTHR_MCQ , PA2_MSPRTHR_MCQ  %in% c(8,9), NA),
@@ -88,26 +59,7 @@ CLSA.baseline <- CLSA.baseline.raw %>%
          CCC_ARTOT =  replace(CCC_ARTOT, CCC_ARTOT %in% c(8,9), NA),
          ADL_DCLS =  replace(ADL_DCLS, ADL_DCLS %in% c(9), NA),
          GEN_DHDI = replace(GEN_DHDI, GEN_DHDI %in% c(9), NA),
-         HUP_PRVACT_MCQ =  replace(HUP_PRVACT_MCQ, HUP_PRVACT_MCQ %in% c(8,9), NA)) %>%
-  # recode values for functional status 1 = yes, 2 = no / unable to do / don't do on doctors orders
-  mutate(FUL_SHLD = if_else(FUL_SHLD %in% c(1), 1, if_else(is.na(FUL_SHLD), NA_integer_, 0)),
-         FUL_STOOP = if_else(FUL_STOOP %in% c(1), 1, if_else(is.na(FUL_STOOP), NA_integer_, 0)),
-         FUL_PUSH = if_else(FUL_PUSH %in% c(1), 1, if_else(is.na(FUL_PUSH), NA_integer_, 0)),
-         FUL_LFT10 = if_else(FUL_LFT10 %in% c(1), 1, if_else(is.na(FUL_LFT10), NA_integer_, 0)),
-         FUL_HDLG = if_else(FUL_HDLG %in% c(1), 1, if_else(is.na(FUL_HDLG), NA_integer_, 0)),
-         FUL_ST15 = if_else(FUL_ST15 %in% c(1), 1, if_else(is.na(FUL_ST15), NA_integer_, 0)),
-         FUL_SIT1H = if_else(FUL_SIT1H %in% c(1), 1, if_else(is.na(FUL_SIT1H), NA_integer_, 0)),
-         FUL_STDUP = if_else(FUL_STDUP %in% c(1), 1, if_else(is.na(FUL_STDUP), NA_integer_, 0)),
-         FUL_FSTR  = if_else(FUL_FSTR %in% c(1), 1, if_else(is.na(FUL_FSTR), NA_integer_, 0)),
-         FUL_WK23B = if_else(FUL_WK23B %in% c(1), 1, if_else(is.na(FUL_WK23B), NA_integer_, 0)),
-         FUL_MKBED = if_else(FUL_MKBED %in% c(1), 1, if_else(is.na(FUL_MKBED), NA_integer_, 0)),
-         FUL_KNCUT = if_else(FUL_KNCUT %in% c(1), 1, if_else(is.na(FUL_KNCUT), NA_integer_, 0)),
-         FUL_FORC  = if_else(FUL_FORC %in% c(1), 1, if_else(is.na(FUL_FORC), NA_integer_, 0))) %>%
-  # create a sum score for functional status (total number of functional limitations)
-  mutate(FUL_TOTAL = rowSums(dplyr::select(.,FUL_SHLD, FUL_STOOP, FUL_PUSH, FUL_LFT10, FUL_HDLG, 
-                                    FUL_ST15, FUL_SIT1H, FUL_STDUP, FUL_FSTR, FUL_WK23B, 
-                                    FUL_MKBED, FUL_KNCUT, FUL_FORC, FUL_WSHBK), 
-                             na.rm = TRUE))
+         HUP_PRVACT_MCQ =  replace(HUP_PRVACT_MCQ, HUP_PRVACT_MCQ %in% c(8,9), NA))
 
 
 # recode PASE scale from 1-4 to 0-3 to align with scoring manual
@@ -131,22 +83,20 @@ CLSA.baseline <- CLSA.baseline %>%  mutate(
          PA2_MSPRTHR_MCQ = recode(PA2_MSPRTHR_MCQ,'1' = 1, '2' = 1, '3' = 2, '4' = 3, '5' = 4),
          PA2_SSPRTHR_MCQ = recode(PA2_SSPRTHR_MCQ,'1' = 1, '2' = 1, '3' = 2, '4' = 3, '5' = 4),
          PA2_EXERHR_MCQ = recode(PA2_EXERHR_MCQ,'1' = 1, '2' = 1, '3' = 2, '4' = 3, '5' = 4),
-         #recode pain free so 1 is yes-pain free
-         HUP_FREE_MCQ = recode (HUP_FREE_MCQ, '1' = 1, '2' = 0))
+         HUP_FREE_MCQ = recode (HUP_FREE_MCQ, '1' = 0, '2' = 1))
 
 
 # create binary I/ADL classification
 # 0 is low I/ADL, 1 is high I/ADL 
 # log transformation for depression 
-CLSA.baseline <- CLSA.baseline %>% 
-  mutate(Binary_IADL.ADL = if_else(ADL_DCLS %in% c(1, 2), 0, if_else(is.na(ADL_DCLS), NA_integer_, 1)),
-         Binary_IADL.ADL2 = if_else(ADL_DCLS %in% c(1), 0, if_else(is.na(ADL_DCLS), NA_integer_, 1)),
-         log_trans_DEP_CESD10 = log(DEP_CESD10+1))
+#CLSA.baseline <- CLSA.baseline %>% 
+#  mutate(Binary_IADL.ADL = if_else(ADL_DCLS %in% c(1, 2), 0, if_else(is.na(ADL_DCLS), NA_integer_, 1)),
+#         Binary_IADL.ADL2 = if_else(ADL_DCLS %in% c(1), 0, if_else(is.na(ADL_DCLS), NA_integer_, 1)),
+#         log_trans_DEP_CESD10 = log(DEP_CESD10+1))
 
 
-# 3) create a total physical activity score (0-400) ####
+# 3) create a total physical activity score for baseline ####
 # scoring reference: https://meetinstrumentenzorg.nl/wp-content/uploads/instrumenten/PASE-handl.pdf 
-# note: max should be 400 but is 485?
 
 # Define a function to calculate weighted scores for different types of activities
 calculate_weighted_score <- function(days, hours_per_day, weight) {
@@ -184,8 +134,7 @@ CLSA.baseline <- CLSA.baseline %>%
     lawn_work_score = if_else(PA2_HVYODA_MCQ == 1, 36, 0),
     outdoor_gardening_score = if_else(PA2_LTODA_MCQ == 1, 20, 0),
     caring_for_another_score = if_else(PA2_CRPRSN_MCQ == 1, 35, 0),
-    #need to adjust this as the value should be divided by 7
-    work_score = if_else(PA2_WRK_MCQ == 1, 21, 0)
+    work_score = (PA2_WRKHRS_NB_MCQ / 7) * 21
   )
 
 # Summing up all the scores to compute the total PASE score
@@ -198,16 +147,293 @@ CLSA.baseline <- CLSA.baseline %>%
   )
 
 
-# 4) filter out only people living with arthritis #### 
+# 4) load and clean follow-up2 data (I/ADL score) ####
+CLSA.Com.FU2 <-read_csv("2304007_UOttawa_MBoisgontier_FUP2_CoPv1-1.CSV")
+CLSA.Tra.FU2 <-read_csv("2304007_UOttawa_MBoisgontier_FUP2_Trav1-1.CSV")
+CLSA.FU2 <- merge(CLSA.Com.FU2, CLSA.Tra.FU2, all=TRUE) 
+
+# 5) Select DVs (ADL/IADL) and ID ####
+CLSA.FU2 <- CLSA.FU2 %>%
+  select(entity_id, ADL_ABLDR_COF2, ADL_HPDR_COF2, ADL_UNDR_COF2, ADL_ABLFD_COF2, 
+         ADL_HPFD_COF2, ADL_UNFD_COF2, ADL_ABLAP_COF2, ADL_HPAP_COF2, ADL_UNAP_COF2,
+         ADL_ABLWK_COF2, ADL_HPWK_COF2, ADL_UNWK_COF2, ADL_ABLBD_COF2, ADL_HPBD_COF2,
+         ADL_UNBD_COF2, ADL_ABLBT_COF2, ADL_HPBT_COF2, ADL_UNBT_COF2, ADL_BATH_COF2,
+         ADL_INCNT_COF2, IAL_ABLTEL_COF2, IAL_HPTEL_COF2, IAL_UNTEL_COF2, 
+         IAL_ABLTRV_COF2, IAL_HPTRV_COF2, IAL_UNTRV_COF2, IAL_ABLGRO_COF2, 
+         IAL_HPGRO_COF2, IAL_UNGRO_COF2, IAL_ABLML_COF2, IAL_HPML_COF2, IAL_UNML_COF2,
+         IAL_ABLWRK_COF2, IAL_HPWRK_COF2, IAL_UNWRK_COF2, IAL_ABLMED_COF2, 
+         IAL_HPMED_COF2, IAL_UNMED_COF2, IAL_ABLMO_COF2, IAL_HPMO_COF2, IAL_UNMO_COF2,
+         ADL_ABLDR_TRF2, ADL_HPDR_TRF2, ADL_UNDR_TRF2, ADL_ABLFD_TRF2, ADL_HPFD_TRF2, 
+         ADL_UNFD_TRF2, ADL_ABLAP_TRF2, ADL_HPAP_TRF2, ADL_UNAP_TRF2, ADL_ABLWK_TRF2, 
+         ADL_HPWK_TRF2, ADL_UNWK_TRF2, ADL_ABLBD_TRF2, ADL_HPBD_TRF2, ADL_UNBD_TRF2, 
+         ADL_ABLBT_TRF2, ADL_HPBT_TRF2, ADL_UNBT_TRF2, ADL_BATH_TRF2, ADL_INCNT_TRF2, 
+         IAL_ABLTEL_TRF2, IAL_HPTEL_TRF2, IAL_UNTEL_TRF2, IAL_ABLTRV_TRF2, 
+         IAL_HPTRV_TRF2, IAL_UNTRV_TRF2, IAL_ABLGRO_TRF2, IAL_HPGRO_TRF2, 
+         IAL_UNGRO_TRF2, IAL_ABLML_TRF2, IAL_HPML_TRF2, IAL_UNML_TRF2, IAL_ABLWRK_TRF2, 
+         IAL_HPWRK_TRF2, IAL_UNWRK_TRF2, IAL_ABLMED_TRF2, IAL_HPMED_TRF2, 
+         IAL_UNMED_TRF2, IAL_ABLMO_TRF2, IAL_HPMO_TRF2, IAL_UNMO_TRF2)%>%
+  mutate(ADL_ABLDR = coalesce(ADL_ABLDR_COF2, ADL_ABLDR_TRF2), 
+         ADL_HPDR = coalesce(ADL_HPDR_COF2, ADL_HPDR_TRF2), 
+         ADL_UNDR = coalesce(ADL_UNDR_COF2, ADL_UNDR_TRF2), 
+         ADL_ABLFD = coalesce(ADL_ABLFD_COF2, ADL_ABLFD_TRF2), 
+         ADL_HPFD = coalesce(ADL_HPFD_COF2, ADL_HPFD_TRF2), 
+         ADL_UNFD = coalesce(ADL_UNFD_COF2, ADL_UNFD_TRF2), 
+         ADL_ABLAP = coalesce(ADL_ABLAP_COF2, ADL_ABLAP_TRF2), 
+         ADL_HPAP = coalesce(ADL_HPAP_COF2, ADL_HPAP_TRF2), 
+         ADL_UNAP = coalesce(ADL_UNAP_COF2,ADL_UNAP_TRF2),
+         ADL_ABLWK = coalesce(ADL_ABLWK_COF2, ADL_ABLWK_TRF2), 
+         ADL_HPWK = coalesce(ADL_HPWK_COF2, ADL_HPWK_TRF2), 
+         ADL_UNWK = coalesce(ADL_UNWK_COF2, ADL_UNWK_TRF2), 
+         ADL_ABLBD = coalesce(ADL_ABLBD_COF2, ADL_ABLBD_TRF2), 
+         ADL_HPBD = coalesce(ADL_HPBD_COF2,ADL_HPBD_TRF2),
+         ADL_UNBD = coalesce(ADL_UNBD_COF2, ADL_UNBD_TRF2), 
+         ADL_ABLBT = coalesce(ADL_ABLBT_COF2, ADL_ABLBT_TRF2), 
+         ADL_HPBT = coalesce(ADL_HPBT_COF2, ADL_HPBT_TRF2), 
+         ADL_UNBT = coalesce(ADL_UNBT_COF2, ADL_UNBT_TRF2), 
+         ADL_BATH = coalesce(ADL_BATH_COF2,ADL_BATH_TRF2),
+         ADL_INCNT = coalesce(ADL_INCNT_COF2, ADL_INCNT_TRF2), 
+         IAL_ABLTEL = coalesce(IAL_ABLTEL_COF2,IAL_ABLTEL_TRF2), 
+         IAL_HPTEL = coalesce(IAL_HPTEL_COF2, IAL_HPTEL_TRF2), 
+         IAL_UNTEL = coalesce(IAL_UNTEL_COF2, IAL_UNTEL_TRF2), 
+         IAL_ABLTRV = coalesce(IAL_ABLTRV_COF2,IAL_ABLTRV_TRF2), 
+         IAL_HPTRV = coalesce(IAL_HPTRV_COF2, IAL_HPTRV_TRF2), 
+         IAL_UNTRV = coalesce(IAL_UNTRV_COF2, IAL_UNTRV_TRF2), 
+         IAL_ABLGRO = coalesce(IAL_ABLGRO_COF2,IAL_ABLGRO_TRF2), 
+         IAL_HPGRO = coalesce(IAL_HPGRO_COF2, IAL_HPGRO_TRF2), 
+         IAL_UNGRO = coalesce(IAL_UNGRO_COF2, IAL_UNGRO_TRF2), 
+         IAL_ABLML = coalesce(IAL_ABLML_COF2, IAL_ABLML_TRF2), 
+         IAL_HPML = coalesce(IAL_HPML_COF2, IAL_HPML_TRF2), 
+         IAL_UNML = coalesce(IAL_UNML_COF2,IAL_UNML_TRF2),
+         IAL_ABLWRK = coalesce(IAL_ABLWRK_COF2,IAL_ABLWRK_TRF2), 
+         IAL_HPWRK = coalesce(IAL_HPWRK_COF2, IAL_HPWRK_TRF2), 
+         IAL_UNWRK = coalesce(IAL_UNWRK_COF2, IAL_UNWRK_TRF2), 
+         IAL_ABLMED = coalesce(IAL_ABLMED_COF2,IAL_ABLMED_TRF2), 
+         IAL_HPMED = coalesce(IAL_HPMED_COF2, IAL_HPMED_TRF2), 
+         IAL_UNMED = coalesce(IAL_UNMED_COF2, IAL_UNMED_TRF2), 
+         IAL_ABLMO = coalesce(IAL_ABLMO_COF2, IAL_ABLMO_TRF2), 
+         IAL_HPMO = coalesce(IAL_HPMO_COF2, IAL_HPMO_TRF2), 
+         IAL_UNMO = coalesce(IAL_UNMO_COF2, IAL_UNMO_TRF2)) %>%
+  select(entity_id, ADL_ABLDR ,ADL_HPDR  ,ADL_UNDR  ,ADL_ABLFD  ,ADL_HPFD  ,
+         ADL_UNFD  ,ADL_ABLAP  ,ADL_HPAP  ,ADL_UNAP  ,ADL_ABLWK  ,ADL_HPWK  ,
+         ADL_UNWK  ,ADL_ABLBD  ,ADL_HPBD  ,ADL_UNBD  ,ADL_ABLBT  ,ADL_HPBT  ,
+         ADL_UNBT  ,ADL_BATH  ,ADL_INCNT  ,IAL_ABLTEL  ,IAL_HPTEL  ,IAL_UNTEL  ,
+         IAL_ABLTRV ,IAL_HPTRV  ,IAL_UNTRV  ,IAL_ABLGRO  ,IAL_HPGRO  ,IAL_UNGRO  ,
+         IAL_ABLML  ,IAL_HPML  ,IAL_UNML  ,IAL_ABLWRK  ,IAL_HPWRK  ,IAL_UNWRK  ,
+         IAL_ABLMED ,IAL_HPMED  ,IAL_UNMED  ,IAL_ABLMO  ,IAL_HPMO  ,IAL_UNMO)  
+
+
+# 7.4 remove placeholder values (e.g., -9999), and create summary items 
+# format missing variables
+CLSA.FU2  <- CLSA.FU2  %>%
+  mutate(across(where(is.numeric), ~na_if(., -99999))) %>% 
+  mutate(across(where(is.character), ~na_if(., "-99999")))
+
+
+# 1) OARS Scale: Number of Missing Items (Excluding Meal Preparation) Variable Name: ADL_NBRMIS
+# Description: This variable counts the total number of daily activities, both basic and instrumental,
+# except for meal preparation, for which the respondent did not provide an answer of their ability to 
+# perform the task.
+
+# ADL_NBRMIS == Number of missing items, excluding meal preparation.
+
+CLSA.FU2 <- CLSA.FU2 %>%
+  mutate(ADL_IMDR = if_else(ADL_ABLDR == 1 | ADL_HPDR == 1 | ADL_UNDR == 1, 0, 1),
+         ADL_IMFD = if_else(ADL_ABLFD == 1 | ADL_HPFD == 1 | ADL_UNFD == 1, 0, 1),
+         ADL_IMAP = if_else(ADL_ABLAP == 1 | ADL_HPAP == 1 | ADL_UNAP == 1, 0, 1),
+         ADL_IMWK = if_else(ADL_ABLWK== 1 | ADL_HPWK == 1 | ADL_UNWK == 1, 0, 1),
+         ADL_IMBD = if_else(ADL_ABLBD == 1 | ADL_HPBD == 1 | ADL_UNBD == 1, 0, 1),
+         ADL_IMBT = if_else(ADL_ABLBT == 1 | ADL_HPBT == 1 | ADL_UNBT == 1, 0, 1),
+         ADL_IMBATH = if_else(
+           (ADL_BATH != 1 & ADL_BATH != 2) | (ADL_BATH == 1 & !ADL_INCNT %in% c(1, 2, 3)), 1,
+           if_else(ADL_BATH == 1 & ADL_INCNT %in% c(1, 2, 3) | ADL_BATH == 2, 0, NA_real_)),
+         ADL_IMTEL = if_else(IAL_ABLTEL == 1 | IAL_HPTEL == 1 | IAL_UNTEL == 1, 0, 1),
+         ADL_IMTRV = if_else(IAL_ABLTRV == 1 | IAL_HPTRV == 1 | IAL_UNTRV == 1, 0, 1),
+         ADL_IMGRO = if_else(IAL_ABLGRO == 1 | IAL_HPGRO == 1 | IAL_UNGRO == 1, 0, 1),
+         ADL_IMWRK = if_else(IAL_ABLWRK == 1 | IAL_HPWRK == 1 | IAL_UNWRK == 1, 0, 1),
+         ADL_IMMED = if_else(IAL_ABLMED == 1 | IAL_HPMED == 1 | IAL_UNMED == 1, 0, 1),
+         ADL_IMMO = if_else(IAL_ABLMO == 1 | IAL_HPMO == 1 | IAL_UNMO == 1, 0, 1))
+
+# List of variables to sum
+variables_to_sum <- c("ADL_IMDR", "ADL_IMFD", "ADL_IMAP", "ADL_IMWK",
+                      "ADL_IMBD", "ADL_IMBT", "ADL_IMBATH", "ADL_IMTEL", "ADL_IMTRV",
+                      "ADL_IMGRO", "ADL_IMWRK", "ADL_IMMED", "ADL_IMMO")
+
+# Filter the list to include only those variables present in the dataset
+existing_vars_to_sum <- variables_to_sum[variables_to_sum %in% names(CLSA.FU2)]
+
+# Create the new variable 'ADL_NBRMIS'
+CLSA.FU2 <- CLSA.FU2 %>%
+  mutate(ADL_NBRMIS = rowSums(select(., all_of(existing_vars_to_sum)), na.rm = TRUE))
+
+
+# 2) OARS Scale: Some or Complete Dependence for Meal Preparation - Intermediate Derived Variable
+# Derived Variable Name: ADL_DMEA_TRM
+# Description: This variable indicates whether a respondent is able to prepare their own meals. The 
+# authors of the OARS instrument determined that the inability to prepare one’s own meals without help 
+# is more detrimental to independent living than all other activities of daily living and hence, the meal 
+# preparation component of the questionnaire should be considered separately when determining 
+# functional capacity (2). 
+
+# Create the new variable 'ADL_DMEA'
+CLSA.FU2 <- CLSA.FU2 %>%
+  mutate(ADL_DMEA = case_when(
+    IAL_ABLML == 1 ~ 0,
+    IAL_HPML == 1 | IAL_UNML == 1 ~ 1,
+    TRUE ~ 9
+  ))
+
+CLSA.FU2 %>% group_by(ADL_DMEA) %>% summarise(count=n())
+
+# 3) OARS scale: Sum of Some Dependence and Complete Dependence (Excluding Meal                                                                Preparation) – Temporary Variable
+# Derived Variable Name: ADL_TDSUM_TRM
+# Description: This variable calculates the total number of times the respondent indicated that they need 
+# help with an activity or that they are completely unable to do an activity in the ADL and IAL modules, 
+# excluding the questions regarding meal preparation ability (IAL_ABLML_TRM, IAL_HPML_TRM, and 
+# IAL_UNML_TRM). It ignores missing values and cannot be interpreted without considering the number 
+# of missing items, ADL_NBRMIS_TRM. This variable in not provided in the CLSA dataset
+
+CLSA.FU2 <- CLSA.FU2 %>%
+  mutate(
+    ADL_THPDR = case_when(ADL_HPDR == 1 ~ 1,TRUE ~ 0),
+    ADL_TUNDR = case_when(ADL_UNDR == 1 ~ 1,TRUE ~ 0),
+    ADL_THPFD = case_when(ADL_HPFD == 1 ~ 1,TRUE ~ 0),
+    ADL_TUNFD = case_when(ADL_UNFD == 1 ~ 1,TRUE ~ 0),
+    ADL_THPAP = case_when(ADL_HPAP == 1 ~ 1,TRUE ~ 0),
+    ADL_TUNAP = case_when(ADL_UNAP == 1 ~ 1,TRUE ~ 0),
+    ADL_THPWK = case_when(ADL_HPWK == 1 ~ 1,TRUE ~ 0),
+    ADL_TUNWK = case_when(ADL_UNWK == 1 ~ 1,TRUE ~ 0),
+    ADL_THPBD = case_when(ADL_HPBD == 1 ~ 1,TRUE ~ 0),
+    ADL_TUNBD = case_when(ADL_UNBD == 1 ~ 1,TRUE ~ 0),
+    ADL_THPBT = case_when(ADL_HPBT == 1 ~ 1,TRUE ~ 0),
+    ADL_TUNBT = case_when(ADL_UNBT == 1 ~ 1,TRUE ~ 0),
+    ADL_TINCNT = case_when(ADL_INCNT %in% c(2, 3) ~ 1,TRUE ~ 0),
+    IAL_THPTEL = case_when(IAL_HPTEL == 1 ~ 1,TRUE ~ 0),
+    IAL_TUNTEL = case_when(IAL_UNTEL == 1 ~ 1,TRUE ~ 0),
+    IAL_THPTRV = case_when(IAL_HPTRV == 1 ~ 1,TRUE ~ 0),
+    IAL_TUNTRV = case_when(IAL_UNTRV == 1 ~ 1,TRUE ~ 0),
+    IAL_THPGRO = case_when(IAL_HPGRO == 1 ~ 1,TRUE ~ 0),
+    IAL_TUNGRO = case_when(IAL_UNGRO == 1 ~ 1,TRUE ~ 0),
+    IAL_THPWRK = case_when(IAL_HPWRK == 1 ~ 1,TRUE ~ 0),
+    IAL_TUNWRK = case_when(IAL_UNWRK == 1 ~ 1,TRUE ~ 0),
+    IAL_THPMED = case_when(IAL_HPMED == 1 ~ 1,TRUE ~ 0),
+    IAL_TUNMED = case_when(IAL_UNMED == 1 ~ 1,TRUE ~ 0),
+    IAL_THPMO = case_when(IAL_HPMO == 1 ~ 1,TRUE ~ 0),
+    IAL_TUNMO = case_when(IAL_UNMO == 1 ~ 1,TRUE ~ 0))
+
+
+# List of variables to sum
+variables_to_sum <- c("ADL_THPDR", "ADL_TUNDR", "ADL_THPFD", "ADL_TUNFD", "ADL_THPAP", 
+                      "ADL_TUNAP", "ADL_THPWK", "ADL_TUNWK", "ADL_THPBD", "ADL_TUNBD",
+                      "ADL_THPBT", "ADL_TUNBT", "ADL_TINCNT", "IAL_THPTEL", "IAL_TUNTEL",
+                      "IAL_THPTRV", "IAL_TUNTRV", "IAL_THPGRO", "IAL_TUNGRO",
+                      "IAL_THPWRK", "IAL_TUNWRK", "IAL_THPMED", "IAL_TUNMED", "IAL_THPMO",
+                      "IAL_TUNMO") 
+
+# Filter the list to include only those variables present in the dataset
+existing_vars_to_sum <- variables_to_sum[variables_to_sum %in% names(CLSA.FU2)]
+
+# Create the new variable 'ADL_TDSUM_TRM'
+CLSA.FU2 <- CLSA.FU2%>%
+  mutate(ADL_TDSUM = rowSums(select(., all_of(existing_vars_to_sum)), na.rm = TRUE))
+
+
+# 4) OARS scale: Basic and Instrumental Activities of Daily Living Classification (Excluding Meal Preparation) – Intermediate Derived Variable
+# Derived Variable Name: ADL_DCLST_TRM
+# Description: This variable categorizes the respondent’s ability to perform activities of daily living based 
+# on the number of times they indicated that they need help with an activity or that they are completely 
+# unable to do an activity in the ADL and IAL modules, excluding the questions regarding meal preparation 
+# ability (IAL_ABLML_TRM, IAL_HPML_TRM, and IAL_UNML_TRM). The classification is done according to 
+# the instructions provided in Table 11 of the OARS manual (2). However, the CLSA has augmented the 
+# classification conditions to also take account of the number of missing items. If the possible values of 
+# those missing items would not change the results of a classification, then the classification can be made. 
+# Hence, some participants with missing items who would have otherwise had a missing classification can 
+# be classified. The classification values range from 0 (no problems performing activities of daily living) to 
+# 4 (complete inability in performing daily activities).
+
+
+CLSA.FU2 <- CLSA.FU2 %>%
+  mutate(
+    ADL_DCLST = case_when(
+      ADL_TDSUM == 0 & ADL_NBRMIS == 0 ~ 0,
+      ADL_TDSUM %in% 1:3 & ADL_NBRMIS == 0 | ADL_TDSUM %in% 1:2 & ADL_NBRMIS == 1 | ADL_TDSUM == 1 & ADL_NBRMIS == 2 ~ 1,
+      ADL_TDSUM %in% 4:5 & ADL_NBRMIS == 0 | ADL_TDSUM == 4 & ADL_NBRMIS == 1 ~ 2,
+      ADL_TDSUM %in% 6:7 & ADL_NBRMIS == 0 | ADL_TDSUM == 6 & ADL_NBRMIS == 1 ~ 3,
+      ADL_TDSUM %in% 8:13 ~ 4,
+      TRUE ~ 9
+    )
+  )
+
+# 5) OARS scale: Basic and Instrumental Activities of Daily Living Classification
+# Derived Variable Name: ADL_DCLS_TRM
+# Description: This variable is an overall classification of a respondent’s capacity to perform activities of 
+# daily living. It is based on the 5-point scale described in Table 11 of the OARS manual (2), which ranges 
+# from 2 (Excellent/Good) to 6 (Total Impairment). The CLSA has modified this scale so that the range is 
+# now 1 to 5, and the first category “Excellent/Good” has been renamed “No functional impairment”. 
+# Higher values indicate greater impairment. This variable combines the functional status classification 
+# determined from all activities of daily living excluding meal preparation (ADL_DCLST_TRM) with the 
+# meal preparation indicator (ADL_DMEA_TRM), creating an overall classification of functional capacity 
+# that assigns extra weight to the meal preparation component.
+
+CLSA.FU2 <- CLSA.FU2 %>%
+  mutate(
+    ADL_DCLS_F2 = case_when(
+      ADL_DMEA == 0 & ADL_DCLST == 0 ~ 1,
+      ADL_DMEA == 0 & ADL_DCLST == 1 ~ 2,
+      (ADL_DMEA == 1 & ADL_DCLST %in% c(0, 1)) | ADL_DCLST == 2 ~ 3,
+      ADL_DCLST == 3 ~ 4,
+      ADL_DCLST == 4 ~ 5,
+      TRUE ~ NA_real_
+    )
+  )
+
+
+# 6) OARS scale: Sum of Some Dependence and Complete Dependence (Excluding Meal Preparation)
+# Derived Variable Name: ADL_DSUM_TRM
+# Description: This variable calculates the total number of times the respondent indicated that they need 
+# help with an activity or that they are completely unable to do an activity in the ADL and IAL modules, 
+# excluding the questions regarding meal preparation ability (IAL_ABLML_TRM, IAL_HPML_TRM, and 
+# IAL_UNML_TRM).If there are any missing items, it too is missing. However, it distinguishes between 
+# participants with missing items who have provided sufficient information for a Basic and Instrumental 
+# Activities of Daily Living Classification and those who have not.
+
+CLSA.FU2 <- CLSA.FU2 %>%
+  mutate(
+    ADL_DSUM_F2 = case_when(
+      ADL_NBRMIS == 0 ~ ADL_TDSUM,
+      ADL_NBRMIS > 0 & ADL_DCLST == 9 ~ NA_real_,
+      ADL_NBRMIS > 0 & ADL_DCLST != 9 ~ NA_real_
+    )
+  )
+
+# merge FU2 variables to baseline dataset 
+CLSA.FU2 <- CLSA.FU2 %>%
+  dplyr::select(entity_id, ADL_DCLS_F2) 
+
+CLSA.baseline.FU2<- full_join(CLSA.baseline, CLSA.FU2, by = "entity_id")
+
+# create binary I/ADL classification
+# 0 is low I/ADL, 1 is high I/ADL 
+# Binary_FU2_IADL.1 is 1-2 vs 3-5
+# Binary_FU2_IADL.2 is 1 vs 2-5
+# log transformation for depression 
+CLSA.baseline.FU2 <- CLSA.baseline.FU2 %>% 
+  mutate(Binary_FU2_IADL.1 = if_else(ADL_DCLS_F2 %in% c(1, 2), 0, if_else(is.na(ADL_DCLS_F2), NA_integer_, 1)),
+         Binary_FU2_IADL.2 = if_else(ADL_DCLS_F2 %in% c(1), 0, if_else(is.na(ADL_DCLS_F2), NA_integer_, 1)),
+         log_trans_DEP_CESD10 = log(DEP_CESD10+1))
+
+
+# 6) filter out by arthritis type #### 
 # n = 2058
-CLSA.baseline.ra <- CLSA.baseline %>% filter(CCC_RA ==1)
+CLSA.baseline.ra <- CLSA.baseline.FU2 %>% filter(CCC_RA ==1)
 # n = 18,681
-CLSA.baseline.arthritis <- CLSA.baseline %>% filter(CCC_RA == 1 | CCC_OAHAND == 1 |
+CLSA.baseline.arthritis <- CLSA.baseline.FU2 %>% filter(CCC_RA == 1 | CCC_OAHAND == 1 |
                                                     CCC_OAHIP == 1 | CCC_OAKNEE == 1 |
                                                     CCC_ARTOT == 1)
+# n = 13,579
+CLSA.baseline.osteo <- CLSA.baseline.FU2 %>% filter(CCC_OAHAND == 1 |CCC_OAHIP == 1 | CCC_OAKNEE == 1)
 
+# 7) descriptive statistics ####
 
-# 5) descriptive statistics ####
 hist(CLSA.baseline.ra$FUL_TOTAL)
 hist(CLSA.baseline.ra$PASE_score)
 hist(CLSA.baseline.ra$DEP_CESD10)
@@ -224,153 +450,332 @@ hist(CLSA.baseline.arthritis$ADL_DCLS)
 hist(CLSA.baseline.arthritis$Binary_IADL.ADL)
 hist(CLSA.baseline.arthritis$Binary_IADL.ADL2)
 
-# 6) mediation analysis - rheumatoid arthritis ####
+
+CLSA.baseline.arthritis %>% group_by(SEX_ASK) %>% summarise(count = n()) %>%
+  mutate(percent = count / sum(count) * 100)
+CLSA.baseline.arthritis %>% group_by(INC_TOT) %>% summarise(count = n()) %>%
+  mutate(percent = count / sum(count) * 100)
+CLSA.baseline.arthritis %>% group_by(AGE_GRP) %>% summarise(count = n()) %>%
+  mutate(percent = count / sum(count) * 100)
+CLSA.baseline.arthritis %>% group_by(ADL_DCLS) %>% summarise(count = n()) %>%
+  mutate(percent = count / sum(count) * 100)
+CLSA.baseline.arthritis %>% group_by(HUP_FREE_MCQ) %>% summarise(count = n()) %>%
+  mutate(percent = count / sum(count) * 100)
+mean(CLSA.baseline.arthritis$PASE_score, na.rm=T)
+sd(CLSA.baseline.arthritis$PASE_score, na.rm=T)
+mean(CLSA.baseline.arthritis$DEP_CESD10, na.rm=T)
+sd(CLSA.baseline.arthritis$DEP_CESD10, na.rm=T)
+
+
+CLSA.baseline.ra %>% group_by(SEX_ASK) %>% summarise(count = n()) %>%
+  mutate(percent = count / sum(count) * 100)
+CLSA.baseline.ra %>% group_by(INC_TOT) %>% summarise(count = n()) %>%
+  mutate(percent = count / sum(count) * 100)
+CLSA.baseline.ra %>% group_by(AGE_GRP) %>% summarise(count = n()) %>%
+  mutate(percent = count / sum(count) * 100)
+CLSA.baseline.ra %>% group_by(ADL_DCLS) %>% summarise(count = n()) %>%
+  mutate(percent = count / sum(count) * 100)
+CLSA.baseline.ra %>% group_by(HUP_FREE_MCQ) %>% summarise(count = n()) %>%
+  mutate(percent = count / sum(count) * 100)
+mean(CLSA.baseline.ra$PASE_score, na.rm=T)
+sd(CLSA.baseline.ra$PASE_score, na.rm=T)
+mean(CLSA.baseline.ra$DEP_CESD10, na.rm=T)
+sd(CLSA.baseline.ra$DEP_CESD10, na.rm=T)
+
+CLSA.baseline.osteo %>% group_by(SEX_ASK) %>% summarise(count = n()) %>%
+  mutate(percent = count / sum(count) * 100)
+CLSA.baseline.osteo %>% group_by(INC_TOT) %>% summarise(count = n()) %>%
+  mutate(percent = count / sum(count) * 100)
+CLSA.baseline.osteo %>% group_by(AGE_GRP) %>% summarise(count = n()) %>%
+  mutate(percent = count / sum(count) * 100)
+CLSA.baseline.osteo %>% group_by(ADL_DCLS) %>% summarise(count = n()) %>%
+  mutate(percent = count / sum(count) * 100)
+CLSA.baseline.osteo %>% group_by(HUP_FREE_MCQ) %>% summarise(count = n()) %>%
+  mutate(percent = count / sum(count) * 100)
+mean(CLSA.baseline.osteo$PASE_score, na.rm=T)
+sd(CLSA.baseline.osteo$PASE_score, na.rm=T)
+mean(CLSA.baseline.osteo$DEP_CESD10, na.rm=T)
+sd(CLSA.baseline.osteo$DEP_CESD10, na.rm=T)
+
+
+CLSA.baseline %>% group_by(SEX_ASK) %>% summarise(count = n()) %>%
+  mutate(percent = count / sum(count) * 100)
+CLSA.baseline %>% group_by(INC_TOT) %>% summarise(count = n()) %>%
+  mutate(percent = count / sum(count) * 100)
+CLSA.baseline %>% group_by(AGE_GRP) %>% summarise(count = n()) %>%
+  mutate(percent = count / sum(count) * 100)
+CLSA.baseline %>% group_by(ADL_DCLS) %>% summarise(count = n()) %>%
+  mutate(percent = count / sum(count) * 100)
+CLSA.baseline %>% group_by(HUP_FREE_MCQ) %>% summarise(count = n()) %>%
+  mutate(percent = count / sum(count) * 100)
+mean(CLSA.baseline$PASE_score, na.rm=T)
+sd(CLSA.baseline$PASE_score, na.rm=T)
+mean(CLSA.baseline$DEP_CESD10, na.rm=T)
+sd(CLSA.baseline$DEP_CESD10, na.rm=T)
+
+
+# 8) mediation analysis - rheumatoid arthritis no/mild vs moderate/sever (Binary_FU2_IADL.1)####
 
 # X -> Y is significant (pain-free predicts I/ADL)
-model3 <- glm(Binary_IADL.ADL2 ~  HUP_FREE_MCQ, family = "binomial", data = CLSA.baseline.ra)
+model3 <- glm(Binary_FU2_IADL.1~  HUP_FREE_MCQ, family = "binomial", data = CLSA.baseline.ra)
 summary(model3)
-# Less pronounced effect for original I/ADL score 
-model4 <- glm(Binary_IADL.ADL ~  HUP_FREE_MCQ, family = "binomial", data = CLSA.baseline.ra)
-summary(model4)
+tidy(model3, exponentiate = TRUE)
 
 # Now check simple mediation without moderation (all significant)
 process(data = CLSA.baseline.ra,
-        y = "Binary_IADL.ADL2", # "functional_limitations",FUL_TOTAL_Log
+        y = "Binary_FU2_IADL.1", # "functional_limitations",FUL_TOTAL_Log
         x = "HUP_FREE_MCQ", # "pain",
         m = "log_trans_DEP_CESD10", # "depressive_symptoms",
         #w = "PASE_score", # "physical_activity",
         model = 4) # simple mediation
 
-# checking simple moderating effect of PA on Pain-free > I/ADL (interaction not significant)
-process(data = CLSA.baseline.ra,
-        y = "Binary_IADL.ADL2", # "functional_limitations",FUL_TOTAL_Log
-        x = "HUP_FREE_MCQ", # "pain",
-        #m = "log_trans_DEP_CESD10", # "depressive_symptoms",
-        w = "PASE_score", # "physical_activity",
-        model = 1) # moderation of direct effect only
+model7 <- lm(log_trans_DEP_CESD10 ~  HUP_FREE_MCQ, data = CLSA.baseline.ra)
+summary(model7)
 
-# checking simple moderating effect of PA on Pain-free > depression (significant)
-process(data = CLSA.baseline.ra,
-        y = "log_trans_DEP_CESD10", # "functional_limitations",FUL_TOTAL_Log
-        x = "HUP_FREE_MCQ", # "pain",
-        #m = "log_trans_DEP_CESD10", # "depressive_symptoms",
-        w = "PASE_score", # "physical_activity",
-        model = 1) # moderation of direct effect only
-
-# checking simple moderating effect of PA on depression > I/ADL (significant)
-process(data = CLSA.baseline.ra,
-        y = "Binary_IADL.ADL2", # "functional_limitations",FUL_TOTAL_Log
-        x = "log_trans_DEP_CESD10", # "pain",
-        #m = "log_trans_DEP_CESD10", # "depressive_symptoms",
-        w = "PASE_score", # "physical_activity",
-        model = 1) # moderation of direct effect only
-
-# back to simple mediation model, now adding moderator for pain-free to depression (interaction significant)
-process(data = CLSA.baseline.ra,
-        y = "Binary_IADL.ADL2", # "functional_limitations",FUL_TOTAL_Log
-        x = "HUP_FREE_MCQ", # "pain",
-        m = "log_trans_DEP_CESD10", # "depressive_symptoms",
-        w = "PASE_score", # "physical_activity",
-        model = 7) # simple mediation with 1 moderator on a path
-
-# mediation model, b path moderator(interaction significant)
-process(data = CLSA.baseline.ra,
-        y = "Binary_IADL.ADL2", # "functional_limitations",FUL_TOTAL_Log
-        x = "HUP_FREE_MCQ", # "pain",
-        m = "log_trans_DEP_CESD10", # "depressive_symptoms",
-        w = "PASE_score", # "physical_activity",
-        model = 14) # simple mediation with 1 moderator on b path
-
-
-# mediation model, with 2 moderators on a and b but not c [direct] (a sig; b not)
-process(data = CLSA.baseline.ra,
-        y = "Binary_IADL.ADL2", # "functional_limitations",FUL_TOTAL_Log
-        x = "HUP_FREE_MCQ", # "pain",
-        m = "log_trans_DEP_CESD10", # "depressive_symptoms",
-        w = "PASE_score", # "physical_activity",
-        model = 58) # simple mediation with 1 moderator on a and b path
-
+model8 <- glm(Binary_FU2_IADL.1 ~  HUP_FREE_MCQ + log_trans_DEP_CESD10, family = "binomial", data = CLSA.baseline.ra)
+summary(model8)
+tidy(model8, exponentiate = TRUE)
 
 # mediation with moderation an a,b,c paths
 process(data = CLSA.baseline.ra,
-        y = "Binary_IADL.ADL2", # "functional_limitations",FUL_TOTAL
+        y = "Binary_FU2_IADL.1", # "functional_limitations",FUL_TOTAL
         x = "HUP_FREE_MCQ", # "pain",
-        m = "DEP_CESD10", # "depressive_symptoms",
-        w = "PASE_score", # "physical_activity",
+        m = "log_trans_DEP_CESD10", # "depressive_symptoms",
+        w = "PASE_score",
+        #cov = "SEX_ASK",# does nothing
         model = 59)
 
-# 7) mediation analysis - all  arthritis ####
+modelw <- lm(log_trans_DEP_CESD10 ~ HUP_FREE_MCQ + PASE_score + PASE_score*HUP_FREE_MCQ, data = CLSA.baseline.ra)
+summary(modelw)
+tidy(modelw)
+
+
+model9 <- glm(Binary_FU2_IADL.1 ~  HUP_FREE_MCQ + log_trans_DEP_CESD10 + PASE_score +
+                HUP_FREE_MCQ*PASE_score + log_trans_DEP_CESD10*PASE_score , family = "binomial", data = CLSA.baseline.ra)
+summary(model9)
+tidy(model9, exponentiate = TRUE)
+
+# 8b) mediation analysis - rheumatoid arthritis no vs mild/moderate/sever (Binary_FU2_IADL.2)####
+
+# Less pronounced effect for original I/ADL score 
+model4 <- glm(Binary_FU2_IADL.2 ~  HUP_FREE_MCQ, family = "binomial", data = CLSA.baseline.ra)
+tidy(model4, exponentiate = TRUE)
+
+# Now check simple mediation without moderation (all significant)
+process(data = CLSA.baseline.ra,
+        y = "Binary_FU2_IADL.2", # "functional_limitations",FUL_TOTAL_Log
+        x = "HUP_FREE_MCQ", # "pain",
+        m = "log_trans_DEP_CESD10", # "depressive_symptoms",
+        #w = "PASE_score", # "physical_activity",
+        model = 4) # simple mediation
+
+model7 <- lm(log_trans_DEP_CESD10 ~  HUP_FREE_MCQ, data = CLSA.baseline.ra)
+summary(model7)
+
+model8 <- glm(Binary_FU2_IADL.2 ~  HUP_FREE_MCQ + log_trans_DEP_CESD10, family = "binomial", data = CLSA.baseline.ra)
+summary(model8)
+tidy(model8, exponentiate = TRUE)
+
+# mediation with moderation an a,b,c paths
+process(data = CLSA.baseline.ra,
+        y = "Binary_FU2_IADL.2", # "functional_limitations",FUL_TOTAL
+        x = "HUP_FREE_MCQ", # "pain",
+        m = "log_trans_DEP_CESD10", # "depressive_symptoms",
+        w = "PASE_score",
+        #cov = "SEX_ASK",# does nothing
+        model = 59)
+
+modelw <- lm(log_trans_DEP_CESD10 ~ HUP_FREE_MCQ + PASE_score + PASE_score*HUP_FREE_MCQ, data = CLSA.baseline.ra)
+summary(modelw)
+tidy(modelw)
+
+
+model9 <- glm(Binary_FU2_IADL.2 ~  HUP_FREE_MCQ + log_trans_DEP_CESD10 + PASE_score +
+                HUP_FREE_MCQ*PASE_score + log_trans_DEP_CESD10*PASE_score , family = "binomial", data = CLSA.baseline.ra)
+summary(model9)
+tidy(model9, exponentiate = TRUE)
+
+
+# 9) mediation analysis - all  arthritis - no/mild vs moderate/sever (Binary_FU2_IADL.1)####
+
+
+# Less pronounced effect for original I/ADL score 
+model2 <- glm(Binary_FU2_IADL.1 ~  HUP_FREE_MCQ, family = "binomial", data = CLSA.baseline.arthritis)
+summary(model2)
+tidy(model2, exponentiate = TRUE)
+
+# Now check simple mediation without moderation (all significant)
+process(data = CLSA.baseline.arthritis,
+        y = "Binary_FU2_IADL.1", # "functional_limitations",FUL_TOTAL_Log
+        x = "HUP_FREE_MCQ", # "pain",
+        m = "log_trans_DEP_CESD10", # "depressive_symptoms",
+        #w = "PASE_score", # "physical_activity",
+        model = 4) # simple mediation
+
+str(CLSA.baseline.arthritis$SEX_ASK)
+
+# lm to obtain p-value in scientific notation
+modelx <- lm(log_trans_DEP_CESD10 ~ HUP_FREE_MCQ, data = CLSA.baseline.arthritis)
+summary(modelx)
+
+# glm to obtain exponentiated log odds and p-value in scientific notation
+model3 <- glm(Binary_FU2_IADL.1 ~  HUP_FREE_MCQ + log_trans_DEP_CESD10, family = "binomial", data = CLSA.baseline.arthritis)
+summary(model2)
+tidy(model3, exponentiate = TRUE)
+
+
+# mediation with moderation an a,b,c paths
+process(data = CLSA.baseline.arthritis,
+        y = "Binary_FU2_IADL.1", # "functional_limitations",FUL_TOTAL
+        x = "HUP_FREE_MCQ", # "pain",
+        m = "log_trans_DEP_CESD10", # "depressive_symptoms",
+        w = "PASE_score",
+        #cov = "SEX_ASK",# does nothing
+        model = 59)
+
+modely <- lm(log_trans_DEP_CESD10 ~ HUP_FREE_MCQ + PASE_score + PASE_score*HUP_FREE_MCQ, data = CLSA.baseline.arthritis)
+summary(modely)
+tidy(modely)
+
+
+model4 <- glm(Binary_FU2_IADL.1 ~  HUP_FREE_MCQ + log_trans_DEP_CESD10 + PASE_score +
+                HUP_FREE_MCQ*PASE_score + log_trans_DEP_CESD10*PASE_score , family = "binomial", data = CLSA.baseline.arthritis)
+summary(model4)
+tidy(model4, exponentiate = TRUE)
+
+
+# 9b) mediation analysis - all  arthritis - no vs mild/moderate/sever (Binary_FU2_IADL.2)####
+
+
+# Less pronounced effect for original I/ADL score 
+model2 <- glm(Binary_FU2_IADL.2 ~  HUP_FREE_MCQ, family = "binomial", data = CLSA.baseline.arthritis)
+summary(model2)
+tidy(model2, exponentiate = TRUE)
+
+# Now check simple mediation without moderation (all significant)
+process(data = CLSA.baseline.arthritis,
+        y = "Binary_FU2_IADL.2", # "functional_limitations",FUL_TOTAL_Log
+        x = "HUP_FREE_MCQ", # "pain",
+        m = "log_trans_DEP_CESD10", # "depressive_symptoms",
+        #w = "PASE_score", # "physical_activity",
+        model = 4) # simple mediation
+
+str(CLSA.baseline.arthritis$SEX_ASK)
+
+# lm to obtain p-value in scientific notation
+modelx <- lm(log_trans_DEP_CESD10 ~ HUP_FREE_MCQ, data = CLSA.baseline.arthritis)
+summary(modelx)
+tidy(modelx)
+# glm to obtain exponentiated log odds and p-value in scientific notation
+model3 <- glm(Binary_FU2_IADL.2 ~  HUP_FREE_MCQ + log_trans_DEP_CESD10, family = "binomial", data = CLSA.baseline.arthritis)
+tidy(model3, exponentiate = TRUE)
+
+
+# mediation with moderation an a,b,c paths
+process(data = CLSA.baseline.arthritis,
+        y = "Binary_FU2_IADL.2", # "functional_limitations",FUL_TOTAL
+        x = "HUP_FREE_MCQ", # "pain",
+        m = "log_trans_DEP_CESD10", # "depressive_symptoms",
+        w = "PASE_score",
+        #cov = "SEX_ASK",# does nothing
+        model = 59)
+
+modely <- lm(log_trans_DEP_CESD10 ~ HUP_FREE_MCQ + PASE_score + PASE_score*HUP_FREE_MCQ, data = CLSA.baseline.arthritis)
+summary(modely)
+tidy(modely)
+
+
+model4 <- glm(Binary_FU2_IADL.2 ~  HUP_FREE_MCQ + log_trans_DEP_CESD10 + PASE_score +
+                HUP_FREE_MCQ*PASE_score + log_trans_DEP_CESD10*PASE_score , family = "binomial", data = CLSA.baseline.arthritis)
+summary(model4)
+tidy(model4, exponentiate = TRUE)
+
+
+# 10) mediation analysis - osteoarthritis - no/mild vs moderate/sever (Binary_FU2_IADL.1)####
+
+model2 <- glm(Binary_FU2_IADL.1 ~  HUP_FREE_MCQ, family = "binomial", data = CLSA.baseline.osteo)
+summary(model2)
+tidy(model2, exponentiate = T)
+
+# Now check simple mediation without moderation (all significant)
+process(data = CLSA.baseline.osteo,
+        y = "Binary_FU2_IADL.1", # "functional_limitations",FUL_TOTAL_Log
+        x = "HUP_FREE_MCQ", # "pain",
+        m = "log_trans_DEP_CESD10", # "depressive_symptoms",
+        #w = "PASE_score", # "physical_activity",
+        model = 4) # simple mediation
+
+# lm to obtain p-value in scientific notation
+modelx <- lm(log_trans_DEP_CESD10 ~ HUP_FREE_MCQ, data = CLSA.baseline.osteo)
+summary(modelx)
+tidy(modelx)
+# glm to obtain exponentiated log odds and p-value in scientific notation
+model3 <- glm(Binary_FU2_IADL.1 ~  HUP_FREE_MCQ + log_trans_DEP_CESD10, family = "binomial", data = CLSA.baseline.osteo)
+summary(model3)
+tidy(model3, exponentiate = TRUE)
+
+
+# mediation with moderation an a,b,c paths
+process(data = CLSA.baseline.osteo,
+        y = "Binary_FU2_IADL.1", # "functional_limitations",FUL_TOTAL
+        x = "HUP_FREE_MCQ", # "pain",
+        m = "log_trans_DEP_CESD10", # "depressive_symptoms",
+        w = "PASE_score",
+        #cov = "SEX_ASK",# does nothing
+        model = 59)
+
+modely <- lm(log_trans_DEP_CESD10 ~ HUP_FREE_MCQ + PASE_score + PASE_score*HUP_FREE_MCQ, data = CLSA.baseline.osteo)
+summary(modely)
+tidy(modely)
+
+
+model4 <- glm(Binary_FU2_IADL.1 ~  HUP_FREE_MCQ + log_trans_DEP_CESD10 + PASE_score +
+                HUP_FREE_MCQ*PASE_score + log_trans_DEP_CESD10*PASE_score , family = "binomial", data = CLSA.baseline.osteo)
+summary(model4)
+tidy(model4, exponentiate = TRUE)
+
+
+# 10b) mediation analysis - osteoarthritis - no vs mild/moderate/sever (Binary_FU2_IADL.2)####
 
 # X -> Y is significant (pain-free predicts I/ADL)
-model1 <- glm(Binary_IADL.ADL2 ~  HUP_FREE_MCQ, family = "binomial", data = CLSA.baseline.arthritis)
+model1 <- glm(Binary_FU2_IADL.2 ~  HUP_FREE_MCQ, family = "binomial", data = CLSA.baseline.osteo)
 summary(model1)
-# Less pronounced effect for original I/ADL score 
-model2 <- glm(Binary_IADL.ADL ~  HUP_FREE_MCQ, family = "binomial", data = CLSA.baseline.arthritis)
-summary(model2)
+tidy(model1, exponentiate = T)
 
 # Now check simple mediation without moderation (all significant)
-process(data = CLSA.baseline.arthritis,
-        y = "Binary_IADL.ADL", # "functional_limitations",FUL_TOTAL_Log
+process(data = CLSA.baseline.osteo,
+        y = "Binary_FU2_IADL.2", # "functional_limitations",FUL_TOTAL_Log
         x = "HUP_FREE_MCQ", # "pain",
         m = "log_trans_DEP_CESD10", # "depressive_symptoms",
         #w = "PASE_score", # "physical_activity",
         model = 4) # simple mediation
 
-# checking simple moderating effect of PA on Pain-free > I/ADL (interaction not significant)
-process(data = CLSA.baseline.arthritis,
-        y = "Binary_IADL.ADL", # "functional_limitations",FUL_TOTAL_Log
-        x = "HUP_FREE_MCQ", # "pain",
-        #m = "log_trans_DEP_CESD10", # "depressive_symptoms",
-        w = "PASE_score", # "physical_activity",
-        model = 1) # moderation of direct effect only
-
-# checking simple moderating effect of PA on Pain-free > depression (significant)
-process(data = CLSA.baseline.arthritis,
-        y = "log_trans_DEP_CESD10", # "functional_limitations",FUL_TOTAL_Log
-        x = "HUP_FREE_MCQ", # "pain",
-        #m = "log_trans_DEP_CESD10", # "depressive_symptoms",
-        w = "PASE_score", # "physical_activity",
-        model = 1) # moderation of direct effect only
-
-# checking simple moderating effect of PA on depression > I/ADL (significant)
-process(data = CLSA.baseline.arthritis,
-        y = "Binary_IADL.ADL", # "functional_limitations",FUL_TOTAL_Log
-        x = "log_trans_DEP_CESD10", # "pain",
-        #m = "log_trans_DEP_CESD10", # "depressive_symptoms",
-        w = "PASE_score", # "physical_activity",
-        model = 1) # moderation of direct effect only
-
-# back to simple mediation model, now adding moderator for pain-free to depression (interaction significant)
-process(data = CLSA.baseline.arthritis,
-        y = "Binary_IADL.ADL", # "functional_limitations",FUL_TOTAL_Log
-        x = "HUP_FREE_MCQ", # "pain",
-        m = "log_trans_DEP_CESD10", # "depressive_symptoms",
-        w = "PASE_score", # "physical_activity",
-        model = 7) # simple mediation with 1 moderator on a path
-
-# mediation model, b path moderator(interaction significant)
-process(data = CLSA.baseline.arthritis,
-        y = "Binary_IADL.ADL", # "functional_limitations",FUL_TOTAL_Log
-        x = "HUP_FREE_MCQ", # "pain",
-        m = "log_trans_DEP_CESD10", # "depressive_symptoms",
-        w = "PASE_score", # "physical_activity",
-        model = 14) # simple mediation with 1 moderator on b path
-
-
-# mediation model, with 2 moderators on a and b but not c [direct] (a sig; b not)
-process(data = CLSA.baseline.arthritis,
-        y = "Binary_IADL.ADL", # "functional_limitations",FUL_TOTAL_Log
-        x = "HUP_FREE_MCQ", # "pain",
-        m = "log_trans_DEP_CESD10", # "depressive_symptoms",
-        w = "PASE_score", # "physical_activity",
-        model = 58) # simple mediation with 1 moderator on a and b path
+# lm to obtain p-value in scientific notation
+modelx <- lm(log_trans_DEP_CESD10 ~ HUP_FREE_MCQ, data = CLSA.baseline.osteo)
+summary(modelx)
+tidy(modelx)
+# glm to obtain exponentiated log odds and p-value in scientific notation
+model3 <- glm(Binary_FU2_IADL.2 ~  HUP_FREE_MCQ + log_trans_DEP_CESD10, family = "binomial", data = CLSA.baseline.osteo)
+summary(model3)
+tidy(model3, exponentiate = TRUE)
 
 
 # mediation with moderation an a,b,c paths
-process(data = CLSA.baseline.arthritis,
-        y = "Binary_IADL.ADL", # "functional_limitations",FUL_TOTAL
+process(data = CLSA.baseline.osteo,
+        y = "Binary_FU2_IADL.2", # "functional_limitations",FUL_TOTAL
         x = "HUP_FREE_MCQ", # "pain",
         m = "log_trans_DEP_CESD10", # "depressive_symptoms",
-        w = "PASE_score", # "physical_activity",
+        w = "PASE_score",
+        #cov = "SEX_ASK",# does nothing
         model = 59)
+
+modely <- lm(log_trans_DEP_CESD10 ~ HUP_FREE_MCQ + PASE_score + PASE_score*HUP_FREE_MCQ, data = CLSA.baseline.osteo)
+summary(modely)
+tidy(modely)
+
+
+model4 <- glm(Binary_FU2_IADL.2 ~  HUP_FREE_MCQ + log_trans_DEP_CESD10 + PASE_score +
+                HUP_FREE_MCQ*PASE_score + log_trans_DEP_CESD10*PASE_score , family = "binomial", data = CLSA.baseline.osteo)
+summary(model4)
+tidy(model4, exponentiate = TRUE)
 
