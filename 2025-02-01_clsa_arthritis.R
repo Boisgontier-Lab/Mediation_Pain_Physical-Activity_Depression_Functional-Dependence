@@ -1,19 +1,30 @@
-# Load libraries 
-library("tidyverse")  # general
-library("here")       # read csv
-library("broom")      # exponentiate log-odds ratio
-library("ggplot2")    # figure
-library("dplyr")      # figure
-library("viridis")    # figure
-# For mediation models, download and run PROCESS script (https://www.processmacro.org/download.html) 
+### Load libraries 
+# General utilities
+library("tidyverse")  
+library("here")      
 
-# Load and clean baseline data 
+# Data manipulation
+library("lubridate")  
+library("dplyr")  
+
+# Statistical analysis
+library("broom")    
+
+# Visualization
+library("ggplot2")    
+library("viridis")  
+
+# For the mediation models, load PROCESS script (https://www.processmacro.org/download.html) 
+process_path <- here("scripts", "process.R")
+system(paste("Rscript", process_path))
+
+### Load and clean baseline data 
 CLSA.Com.baseline <- read.csv(here("datasets", "2304007_UOttawa_MBoisgontier_BL","2304007_UOttawa_MBoisgontier_Baseline_CoPv7.csv"))
 CLSA.Tra.baseline <- read.csv(here("datasets", "2304007_UOttawa_MBoisgontier_BL","2304007_UOttawa_MBoisgontier_Baseline_Trav4.csv"))
 CLSA.baseline.raw <- merge(CLSA.Com.baseline, CLSA.Tra.baseline, all=TRUE)
 
 CLSA.baseline <- CLSA.baseline.raw %>%
-  dplyr::select(entity_id, PA2_SIT_MCQ, PA2_WALK_MCQ, PA2_LSPRT_MCQ, PA2_MSPRT_MCQ, 
+  dplyr::select(entity_id, startdate_COM, startdate_TRM, PA2_SIT_MCQ, PA2_WALK_MCQ, PA2_LSPRT_MCQ, PA2_MSPRT_MCQ, 
                 PA2_SSPRT_MCQ, PA2_EXER_MCQ, PA2_LTHSWK_MCQ, PA2_HVYHSWK_MCQ, 
                 PA2_HMREPAIR_MCQ, PA2_HVYODA_MCQ, PA2_LTODA_MCQ, PA2_CRPRSN_MCQ, 
                 PA2_WRK_MCQ, HUP_FREE_MCQ,DEP_CESD10_COM, DEP_CESD10_TRM, ADL_DCLS_COM, ADL_DCLS_TRM, HUP_PRVACT_MCQ,
@@ -25,7 +36,8 @@ CLSA.baseline <- CLSA.baseline.raw %>%
                 AGE_NMBR_COM, AGE_NMBR_TRM) %>%
   
   # coalesce columns from comprehensive (COM) and tracking (TRM) surveys
-  mutate(DEP_CESD10 = coalesce(DEP_CESD10_COM, DEP_CESD10_TRM),
+  mutate(startdate_baseline = coalesce(startdate_COM, startdate_TRM), # to compute time difference between data collection waves
+         DEP_CESD10 = coalesce(DEP_CESD10_COM, DEP_CESD10_TRM),
          ADL_DCLS = coalesce(ADL_DCLS_COM, ADL_DCLS_TRM),
          CCC_RA = coalesce(CCC_RA_COM, CCT_RA_TRM),
          CCC_OAHAND = coalesce(CCC_OAHAND_COM, CCT_OAHAND_TRM),
@@ -68,6 +80,9 @@ CLSA.baseline <- CLSA.baseline.raw %>%
          HUP_PRVACT_MCQ =  replace(HUP_PRVACT_MCQ, HUP_PRVACT_MCQ %in% c(8,9), NA),
          PA2_WRKHRS_NB_MCQ =  replace(PA2_WRKHRS_NB_MCQ, PA2_WRKHRS_NB_MCQ %in% c(777, 998, 999), NA))
 
+
+list (CLSA.baseline$startdate_baseline)
+
 # recode PASE scale from 1-4 to 0-3 to align with scoring manual
 # recode PASE Hrs/day to align with scoring (1/2 =1, 3 =2, 4 =3, 5 = 4)
 CLSA.baseline <- CLSA.baseline %>%  mutate(
@@ -91,12 +106,12 @@ CLSA.baseline <- CLSA.baseline %>%  mutate(
   PA2_EXERHR_MCQ = recode(PA2_EXERHR_MCQ,'1' = 1, '2' = 1, '3' = 2, '4' = 3, '5' = 4),
   HUP_FREE_MCQ = recode (HUP_FREE_MCQ, '1' = 0, '2' = 1))
 
-# create binary I/ADL classification for baseline
+# create binary I/ADL classification for baseline and log transforming depression
 # 0 is low I/ADL, 1 is high I/ADL 
 # log transformation for depression 
 CLSA.baseline <- CLSA.baseline %>% 
-  mutate(Binary_IADL.ADL = if_else(ADL_DCLS %in% c(1, 2), 0, if_else(is.na(ADL_DCLS), NA_integer_, 1)),
-         Binary_IADL.ADL2 = if_else(ADL_DCLS %in% c(1), 0, if_else(is.na(ADL_DCLS), NA_integer_, 1)),
+  mutate(Binary_IADL.ADL_baseline = if_else(ADL_DCLS %in% c(1, 2), 0, if_else(is.na(ADL_DCLS), NA_integer_, 1)),
+         Binary_IADL.ADL2_baseline = if_else(ADL_DCLS %in% c(1), 0, if_else(is.na(ADL_DCLS), NA_integer_, 1)),
          log_trans_DEP_CESD10 = log(DEP_CESD10+1))
 
 # Define a function to calculate weighted scores for different types of activities
@@ -147,14 +162,14 @@ CLSA.baseline <- CLSA.baseline %>%
       outdoor_gardening_score + caring_for_another_score + work_score
   )
 
-# Load and clean follow-up 2 ("FU2") data (I/ADL score) ####
+# Load and clean follow-up2 data (I/ADL score) ####
 CLSA.Com.FU2 <- read.csv(here("datasets", "2304007_UOttawa_MBoisgontier_FUP2","2304007_UOttawa_MBoisgontier_FUP2_CoPv1-1.csv"))
 CLSA.Tra.FU2 <- read.csv(here("datasets", "2304007_UOttawa_MBoisgontier_FUP2","2304007_UOttawa_MBoisgontier_FUP2_Trav1-1.csv"))
 CLSA.FU2 <- merge(CLSA.Com.FU2, CLSA.Tra.FU2, all=TRUE) 
 
 # Select DVs (ADL/IADL) and ID ####
 CLSA.FU2 <- CLSA.FU2 %>%
-  select(entity_id, ADL_ABLDR_COF2, ADL_HPDR_COF2, ADL_UNDR_COF2, ADL_ABLFD_COF2, 
+  select(entity_id, startdate_COF2, startdate_TRF2, ADL_ABLDR_COF2, ADL_HPDR_COF2, ADL_UNDR_COF2, ADL_ABLFD_COF2, 
          ADL_HPFD_COF2, ADL_UNFD_COF2, ADL_ABLAP_COF2, ADL_HPAP_COF2, ADL_UNAP_COF2,
          ADL_ABLWK_COF2, ADL_HPWK_COF2, ADL_UNWK_COF2, ADL_ABLBD_COF2, ADL_HPBD_COF2,
          ADL_UNBD_COF2, ADL_ABLBT_COF2, ADL_HPBT_COF2, ADL_UNBT_COF2, ADL_BATH_COF2,
@@ -172,7 +187,9 @@ CLSA.FU2 <- CLSA.FU2 %>%
          IAL_UNGRO_TRF2, IAL_ABLML_TRF2, IAL_HPML_TRF2, IAL_UNML_TRF2, IAL_ABLWRK_TRF2, 
          IAL_HPWRK_TRF2, IAL_UNWRK_TRF2, IAL_ABLMED_TRF2, IAL_HPMED_TRF2, 
          IAL_UNMED_TRF2, IAL_ABLMO_TRF2, IAL_HPMO_TRF2, IAL_UNMO_TRF2)%>%
-  mutate(ADL_ABLDR = coalesce(ADL_ABLDR_COF2, ADL_ABLDR_TRF2), 
+  
+  mutate(startdate_FU2 = coalesce(startdate_COF2, startdate_TRF2),
+         ADL_ABLDR = coalesce(ADL_ABLDR_COF2, ADL_ABLDR_TRF2), 
          ADL_HPDR = coalesce(ADL_HPDR_COF2, ADL_HPDR_TRF2), 
          ADL_UNDR = coalesce(ADL_UNDR_COF2, ADL_UNDR_TRF2), 
          ADL_ABLFD = coalesce(ADL_ABLFD_COF2, ADL_ABLFD_TRF2), 
@@ -213,13 +230,15 @@ CLSA.FU2 <- CLSA.FU2 %>%
          IAL_ABLMO = coalesce(IAL_ABLMO_COF2, IAL_ABLMO_TRF2), 
          IAL_HPMO = coalesce(IAL_HPMO_COF2, IAL_HPMO_TRF2), 
          IAL_UNMO = coalesce(IAL_UNMO_COF2, IAL_UNMO_TRF2)) %>%
-  select(entity_id, ADL_ABLDR ,ADL_HPDR  ,ADL_UNDR  ,ADL_ABLFD  ,ADL_HPFD  ,
+  
+  select(entity_id, startdate_FU2, ADL_ABLDR ,ADL_HPDR  ,ADL_UNDR  ,ADL_ABLFD  ,ADL_HPFD  ,
          ADL_UNFD  ,ADL_ABLAP  ,ADL_HPAP  ,ADL_UNAP  ,ADL_ABLWK  ,ADL_HPWK  ,
          ADL_UNWK  ,ADL_ABLBD  ,ADL_HPBD  ,ADL_UNBD  ,ADL_ABLBT  ,ADL_HPBT  ,
          ADL_UNBT  ,ADL_BATH  ,ADL_INCNT  ,IAL_ABLTEL  ,IAL_HPTEL  ,IAL_UNTEL  ,
          IAL_ABLTRV ,IAL_HPTRV  ,IAL_UNTRV  ,IAL_ABLGRO  ,IAL_HPGRO  ,IAL_UNGRO  ,
          IAL_ABLML  ,IAL_HPML  ,IAL_UNML  ,IAL_ABLWRK  ,IAL_HPWRK  ,IAL_UNWRK  ,
          IAL_ABLMED ,IAL_HPMED  ,IAL_UNMED  ,IAL_ABLMO  ,IAL_HPMO  ,IAL_UNMO)  
+
 
 # remove placeholder values (e.g., -9999), and create summary items 
 # format missing variables
@@ -397,11 +416,14 @@ CLSA.FU2 <- CLSA.FU2 %>%
     )
   )
 
-# merge FU2 variables to baseline dataset 
-CLSA.FU2 <- CLSA.FU2 %>%
-  dplyr::select(entity_id, ADL_DCLS_F2) 
+list (CLSA.FU2$startdate_FU2) 
 
-CLSA.baseline.FU2<- full_join(CLSA.baseline, CLSA.FU2, by = "entity_id")
+# selecting only three specific columns of follow-up dataset
+CLSA.FU2 <- CLSA.FU2 %>%
+  dplyr::select(entity_id, ADL_DCLS_F2, startdate_FU2) 
+
+# merge FU2 variables to baseline dataset 
+CLSA.baseline.FU2 <- full_join(CLSA.baseline, CLSA.FU2, by = "entity_id")
 
 # create binary I/ADL classification
 # 0 is low I/ADL, 1 is high I/ADL 
@@ -410,8 +432,7 @@ CLSA.baseline.FU2<- full_join(CLSA.baseline, CLSA.FU2, by = "entity_id")
 # log transformation for depression 
 CLSA.baseline.FU2 <- CLSA.baseline.FU2 %>% 
   mutate(Binary_FU2_IADL.1 = if_else(ADL_DCLS_F2 %in% c(1, 2), 0, if_else(is.na(ADL_DCLS_F2), NA_integer_, 1)),
-         Binary_FU2_IADL.2 = if_else(ADL_DCLS_F2 %in% c(1), 0, if_else(is.na(ADL_DCLS_F2), NA_integer_, 1)),
-         log_trans_DEP_CESD10 = log(DEP_CESD10+1))
+         Binary_FU2_IADL.2 = if_else(ADL_DCLS_F2 %in% c(1), 0, if_else(is.na(ADL_DCLS_F2), NA_integer_, 1)))
 
 # Convert Factor Sex (F/M) to Numeric (0/1)
 str(CLSA.baseline.FU2$SEX_ASK)
@@ -419,7 +440,7 @@ CLSA.baseline.FU2$sex_numeric <- ifelse(CLSA.baseline.FU2$SEX_ASK == "M", 1, 0) 
 
 # Remove NAs
 CLSA.baseline.FU2.subset <- subset(CLSA.baseline.FU2, !is.na(Binary_FU2_IADL.1) & !is.na(HUP_FREE_MCQ)
-                     & !is.na(log_trans_DEP_CESD10) & !is.na(PASE_score)  & !is.na(AGE_NMBR) & !is.na(sex_numeric))
+                     & !is.na(log_trans_DEP_CESD10) & !is.na(PASE_score)  & !is.na(AGE_NMBR) & !is.na(sex_numeric) & !is.na(Binary_IADL.ADL_baseline))
 nrow(CLSA.baseline.FU2) # n = 51338
 
 ### filter out by arthritis type 
@@ -427,15 +448,40 @@ nrow(CLSA.baseline.FU2) # n = 51338
 CLSA.baseline.arthritis <- CLSA.baseline.FU2.subset %>% filter(CCC_RA == 1 | CCC_OAHAND == 1 |
                                                           CCC_OAHIP == 1 | CCC_OAKNEE == 1 |
                                                           CCC_ARTOT == 1)
-nrow(CLSA.baseline.arthritis) # n = 7002
+nrow(CLSA.baseline.arthritis) # n = 6972
 
 # Osteoarthritis
 CLSA.baseline.osteo <- CLSA.baseline.FU2.subset %>% filter(CCC_OAHAND == 1 |CCC_OAHIP == 1 | CCC_OAKNEE == 1)
-nrow(CLSA.baseline.osteo) # n = 4951
+nrow(CLSA.baseline.osteo) # n = 4930
 
 # Rheumatoid Arthritis
 CLSA.baseline.ra <- CLSA.baseline.FU2.subset %>% filter(CCC_RA ==1)
-nrow(CLSA.baseline.ra) # n = 701
+nrow(CLSA.baseline.ra) # n = 694
+
+### Time difference between baseline and follow-up
+# Convert baseline and follow-up dates to POSIXct format
+CLSA.baseline.arthritis <- CLSA.baseline.arthritis %>%
+  mutate(
+    startdate_baseline = ymd_hms(startdate_baseline, tz = "UTC"),
+    startdate_FU2 = ymd_hms(startdate_FU2, tz = "UTC"),
+    time_diff_days = as.numeric(difftime(startdate_FU2, startdate_baseline, units = "days")),
+    time_diff_years = time_diff_days / 365.25  # Convert days to years
+  )
+
+# Compute summary statistics
+summary_stats <- CLSA.baseline.arthritis %>%
+  summarise(
+    Mean_Days = mean(time_diff_days, na.rm = TRUE),
+    SD_Days = sd(time_diff_days, na.rm = TRUE),
+    Min_Days = min(time_diff_days, na.rm = TRUE),
+    Max_Days = max(time_diff_days, na.rm = TRUE),
+    Mean_Years = mean(time_diff_years, na.rm = TRUE),
+    SD_Years = sd(time_diff_years, na.rm = TRUE),
+    Min_Years = min(time_diff_years, na.rm = TRUE),
+    Max_Years = max(time_diff_years, na.rm = TRUE)
+  )
+
+print(summary_stats)
 
 ### Standardization
 CLSA.baseline.arthritis$AGE_NMBR_c <- scale (CLSA.baseline.arthritis$AGE_NMBR, center = TRUE, scale = TRUE)
@@ -490,24 +536,24 @@ m1.1 <- process(data = CLSA.baseline.arthritis,
         y = "Binary_FU2_IADL.1", #functional_limitations
         x = "HUP_FREE_MCQ", #pain
         m = c("log_trans_DEP_CESD10_c","PASE_score_c"), #depressive_symptoms
-        cov = c("sex_numeric", "AGE_NMBR_c"), 
+        cov = c("sex_numeric", "AGE_NMBR_c", "Binary_IADL.ADL_baseline"), 
         model = 6)
 
-m1.2.1 <- lm(log_trans_DEP_CESD10_c ~ HUP_FREE_MCQ + AGE_NMBR_c + sex_numeric, 
-           data = CLSA.baseline.arthritis)
+m1.2.1 <- lm(log_trans_DEP_CESD10_c ~ HUP_FREE_MCQ + AGE_NMBR_c + sex_numeric 
+             + Binary_IADL.ADL_baseline, data = CLSA.baseline.arthritis)
 summary(m1.2.1)
 tidy(m1.2.1, conf.int = TRUE, conf.level = 0.95)%>%
-  mutate(across(where(is.numeric), ~ format(.x, digits = 4, nsmall = 3)))
+  mutate(across(where(is.numeric), ~ format(.x, digits = 4, nsmall = 4)))
 
-m1.2.2 <- lm(PASE_score_c ~ HUP_FREE_MCQ + log_trans_DEP_CESD10_c + AGE_NMBR_c + sex_numeric, 
-           data = CLSA.baseline.arthritis)
+m1.2.2 <- lm(PASE_score_c ~ HUP_FREE_MCQ + log_trans_DEP_CESD10_c + AGE_NMBR_c + sex_numeric
+             + Binary_IADL.ADL_baseline, data = CLSA.baseline.arthritis)
 summary(m1.2.2)
 tidy(m1.2.2, conf.int = TRUE, conf.level = 0.95)%>%
-  mutate(across(where(is.numeric), ~ format(.x, digits = 4, nsmall = 3)))
+  mutate(across(where(is.numeric), ~ format(.x, digits = 4, nsmall = 4)))
 
 # glm to obtain exponentiated log odds and p-value in scientific notation
 m1.3 <- glm(Binary_FU2_IADL.1 ~ HUP_FREE_MCQ + log_trans_DEP_CESD10_c + PASE_score_c + AGE_NMBR_c + sex_numeric 
-            , family = "binomial", data = CLSA.baseline.arthritis)
+            + Binary_IADL.ADL_baseline, family = "binomial", data = CLSA.baseline.arthritis)
 summary(m1.3)
 tidy(m1.3, conf.int = TRUE, conf.level = 0.95, exponentiate = TRUE) %>%
   mutate(across(where(is.numeric), ~ format(.x, digits = 3, nsmall = 3)))
@@ -519,25 +565,25 @@ m2.1 <- process(data = CLSA.baseline.arthritis,
         y = "Binary_FU2_IADL.2", #functional_limitations
         x = "HUP_FREE_MCQ", #pain
         m = c("log_trans_DEP_CESD10_c","PASE_score_c"), #depressive_symptoms
-        cov = c("sex_numeric", "AGE_NMBR_c"), 
+        cov = c("sex_numeric", "AGE_NMBR_c", "Binary_IADL.ADL_baseline"), 
         model = 6)
 
 # lm to obtain p-value in scientific notation
 m2.2.1 <- lm(log_trans_DEP_CESD10_c ~ HUP_FREE_MCQ + AGE_NMBR_c + sex_numeric 
-           , data = CLSA.baseline.arthritis)
+             + Binary_IADL.ADL_baseline, data = CLSA.baseline.arthritis)
 summary(m2.2.1)
 tidy(m2.2.1, conf.int = TRUE, conf.level = 0.95)%>%
   mutate(across(where(is.numeric), ~ format(.x, digits = 3, nsmall = 3)))
 
 m2.2.2 <- lm(PASE_score_c ~ HUP_FREE_MCQ + log_trans_DEP_CESD10_c + AGE_NMBR_c + sex_numeric 
-             , data = CLSA.baseline.arthritis)
+             + Binary_IADL.ADL_baseline, data = CLSA.baseline.arthritis)
 summary(m2.2.2)
 tidy(m2.2.2, conf.int = TRUE, conf.level = 0.95)%>%
   mutate(across(where(is.numeric), ~ format(.x, digits = 3, nsmall = 3)))
 
 # glm to obtain exponentiated log odds and p-value in scientific notation
 m2.3 <- glm(Binary_FU2_IADL.2 ~  HUP_FREE_MCQ + log_trans_DEP_CESD10_c + PASE_score_c + AGE_NMBR_c 
-            + sex_numeric, family = "binomial", data = CLSA.baseline.arthritis)
+            + sex_numeric + Binary_IADL.ADL_baseline, family = "binomial", data = CLSA.baseline.arthritis)
 tidy(m2.3, conf.int = TRUE, conf.level = 0.95, exponentiate = TRUE)%>%
   mutate(across(where(is.numeric), ~ format(.x, digits = 3, nsmall = 3)))
 
@@ -547,25 +593,25 @@ m3.1 <- process(data = CLSA.baseline.osteo,
                 y = "Binary_FU2_IADL.1", #functional_limitations
                 x = "HUP_FREE_MCQ", #pain
                 m = c("log_trans_DEP_CESD10_c","PASE_score_c"), #depressive_symptoms
-                cov = c("sex_numeric", "AGE_NMBR_c"), 
+                cov = c("sex_numeric", "AGE_NMBR_c", "Binary_IADL.ADL_baseline"), 
                 model = 6)
 
 # lm to obtain p-value in scientific notation
 m3.2.1 <- lm(log_trans_DEP_CESD10_c ~ HUP_FREE_MCQ + PASE_score_c + AGE_NMBR_c + sex_numeric 
-             , data = CLSA.baseline.osteo)
+             + Binary_IADL.ADL_baseline, data = CLSA.baseline.osteo)
 summary(m3.2.1)
 tidy(m3.2.1, conf.int = TRUE, conf.level = 0.95)%>%
   mutate(across(where(is.numeric), ~ format(.x, digits = 3, nsmall = 3)))
 
 m3.2.2 <- lm(PASE_score_c ~ HUP_FREE_MCQ + log_trans_DEP_CESD10_c + AGE_NMBR_c + sex_numeric 
-             , data = CLSA.baseline.osteo)
+             + Binary_IADL.ADL_baseline, data = CLSA.baseline.osteo)
 summary(m3.2.2)
 tidy(m3.2.2, conf.int = TRUE, conf.level = 0.95)%>%
   mutate(across(where(is.numeric), ~ format(.x, digits = 3, nsmall = 3)))
 
 # glm to obtain exponentiated log odds and p-value in scientific notation
 m3.3 <- glm(Binary_FU2_IADL.1 ~  HUP_FREE_MCQ + log_trans_DEP_CESD10_c + PASE_score_c + AGE_NMBR_c 
-            + sex_numeric, family = "binomial", data = CLSA.baseline.osteo)
+            + sex_numeric + Binary_IADL.ADL_baseline, family = "binomial", data = CLSA.baseline.osteo)
 summary(m3.3)
 tidy(m3.3, conf.int = TRUE, conf.level = 0.95, exponentiate = TRUE)%>%
   mutate(across(where(is.numeric), ~ format(.x, digits = 3, nsmall = 3)))
@@ -581,41 +627,41 @@ m4.1 <- process(data = CLSA.baseline.ra,
 
 # lm to obtain p-value in scientific notation
 m4.2.1 <- lm(log_trans_DEP_CESD10_c ~  HUP_FREE_MCQ + AGE_NMBR_c + sex_numeric 
-           , data = CLSA.baseline.ra)
+             + Binary_IADL.ADL_baseline, data = CLSA.baseline.ra)
 summary(m4.2.1)
 tidy(m4.2.1, conf.int = TRUE, conf.level = 0.95)
 
 m4.2.2 <- lm(PASE_score_c ~ HUP_FREE_MCQ + log_trans_DEP_CESD10_c + AGE_NMBR_c + sex_numeric 
-             , data = CLSA.baseline.ra)
+             + Binary_IADL.ADL_baseline, data = CLSA.baseline.ra)
 summary(m4.2.2)
 tidy(m4.2.2, conf.int = TRUE, conf.level = 0.95)
 
 # glm to obtain exponentiated log odds and p-value in scientific notation
 m4.3 <- glm(Binary_FU2_IADL.1 ~ HUP_FREE_MCQ + log_trans_DEP_CESD10_c + PASE_score_c + AGE_NMBR_c 
-            + sex_numeric, family = "binomial", data = CLSA.baseline.ra)
+            + sex_numeric + Binary_IADL.ADL_baseline, family = "binomial", data = CLSA.baseline.ra)
 summary(m4.3)
 tidy(m4.3, conf.int = TRUE, conf.level = 0.95, exponentiate = TRUE)
 
-### Figure 2
+### Figure
 # Create data frame for indirect effects
 data <- data.frame(
-  Group = rep(c("Total", "Depressive Symptoms", "Physical Activity", "Serial"), each = 4),
+  Group = rep(c("Total", "Depressive Symptoms", "Physical Activity", "Serial Pathway"), each = 4),
   Condition = rep(c("All Arthritis 1", "All Arthritis 2", "Osteoarthritis", "Rheumatoid Arthritis"), times = 4),
-  Estimate = c(0.236, 0.168, 0.249, 0.257, 
-               0.162, 0.130, 0.167, 0.194, 
-               0.065, 0.033, 0.069, 0.050, 
-               0.009, 0.005, 0.013, 0.012),
-  Lower_CI = c(0.155, 0.132, 0.154, 0.022, 
-               0.095, 0.099, 0.090, 0.023, 
-               0.029, 0.017, 0.025, -0.093, 
-               0.003, 0.002, 0.004, -0.010),
-  Upper_CI = c(0.327, 0.206, 0.358, 0.579, 
-               0.240, 0.165, 0.255, 0.485, 
-               0.110, 0.052, 0.128, 0.222, 
-               0.017, 0.008, 0.025, 0.042)
+  Estimate = c(0.184, 0.152, 0.203, 0.250,  # Total indirect effect
+               0.128, 0.120, 0.139, 0.185,  # Depressive symptoms
+               0.050, 0.028, 0.055, 0.055,  # Physical activity
+               0.006, 0.004, 0.009, 0.010), # Serial pathway
+  Lower_CI = c(0.110, 0.117, 0.113, 0.049, 
+               0.066, 0.089, 0.062, 0.013, 
+               0.019, 0.013, 0.016, -0.089, 
+               0.001, 0.001, 0.002, -0.013),
+  Upper_CI = c(0.267, 0.189, 0.307, 0.574, 
+               0.200, 0.154, 0.227, 0.453, 
+               0.090, 0.046, 0.109, 0.226, 
+               0.013, 0.007, 0.019, 0.038)
 )
 
-# Plot using ggplot2 with Viridis color scale
+# Plot using ggplot2 with Viridis color scale and setting factor order in scale_x_discrete
 ggplot(data, aes(x = Group, y = Estimate, ymin = Lower_CI, ymax = Upper_CI, color = Condition)) +
   geom_pointrange(position = position_dodge(width = 0.6), size = 0.2) +  # Smaller points
   geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +  # Add reference line at 0
