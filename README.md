@@ -1,6 +1,6 @@
 # Depressive symptoms and physical activity mediate the detrimental effect of pain on functional independence in adults with arthritis
 
-This repo contains the `R` script to analyze the relationship between pain, depressive symptoms, physical activity, and functional status in adults with arthritis using the [CLSA](https://www.clsa-elcv.ca) panel data survey.
+This repo contains the `R` scripts to analyze the relationship between pain, depressive symptoms, physical activity, and functional status in adults with arthritis using the [CLSA](https://www.clsa-elcv.ca) panel data survey.
 
 ## Data
 The scripts expect CSV files that are subsequently imported by `R`.
