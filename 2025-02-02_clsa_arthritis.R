@@ -661,7 +661,7 @@ data <- data.frame(
                0.013, 0.007, 0.019, 0.038)
 )
 
-# Plot using ggplot2 with Viridis color scale and setting factor order in scale_x_discrete
+# Plot using ggplot2 with Viridis color scale
 ggplot(data, aes(x = Group, y = Estimate, ymin = Lower_CI, ymax = Upper_CI, color = Condition)) +
   geom_pointrange(position = position_dodge(width = 0.6), size = 0.2) +  # Smaller points
   geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +  # Add reference line at 0
