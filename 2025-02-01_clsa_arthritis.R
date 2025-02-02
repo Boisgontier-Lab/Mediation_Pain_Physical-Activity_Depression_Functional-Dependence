@@ -91,6 +91,14 @@ CLSA.baseline <- CLSA.baseline %>%  mutate(
   PA2_EXERHR_MCQ = recode(PA2_EXERHR_MCQ,'1' = 1, '2' = 1, '3' = 2, '4' = 3, '5' = 4),
   HUP_FREE_MCQ = recode (HUP_FREE_MCQ, '1' = 0, '2' = 1))
 
+# create binary I/ADL classification for baseline
+# 0 is low I/ADL, 1 is high I/ADL 
+# log transformation for depression 
+CLSA.baseline <- CLSA.baseline %>% 
+  mutate(Binary_IADL.ADL = if_else(ADL_DCLS %in% c(1, 2), 0, if_else(is.na(ADL_DCLS), NA_integer_, 1)),
+         Binary_IADL.ADL2 = if_else(ADL_DCLS %in% c(1), 0, if_else(is.na(ADL_DCLS), NA_integer_, 1)),
+         log_trans_DEP_CESD10 = log(DEP_CESD10+1))
+
 # Define a function to calculate weighted scores for different types of activities
 calculate_weighted_score <- function(days, hours_per_day, weight) {
   # Conversion table based on days and hours per day
