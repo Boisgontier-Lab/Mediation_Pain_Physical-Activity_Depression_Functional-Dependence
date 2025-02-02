@@ -153,7 +153,7 @@ CLSA.baseline <- CLSA.baseline %>%
       outdoor_gardening_score + caring_for_another_score + work_score
   )
 
-# Load and clean follow-up2 data (I/ADL score) ####
+# Load and clean follow-up 2 ("FU2") data (I/ADL score) ####
 CLSA.Com.FU2 <- read.csv(here("datasets", "2304007_UOttawa_MBoisgontier_FUP2","2304007_UOttawa_MBoisgontier_FUP2_CoPv1-1.csv"))
 CLSA.Tra.FU2 <- read.csv(here("datasets", "2304007_UOttawa_MBoisgontier_FUP2","2304007_UOttawa_MBoisgontier_FUP2_Trav1-1.csv"))
 CLSA.FU2 <- merge(CLSA.Com.FU2, CLSA.Tra.FU2, all=TRUE) 
