@@ -18,7 +18,7 @@ library("viridis")
 process_path <- here("scripts", "process.R")
 system(paste("Rscript", process_path))
 
-### Load and clean baseline data 
+## Load and clean baseline data 
 CLSA.Com.baseline <- read.csv(here("datasets", "2304007_UOttawa_MBoisgontier_BL","2304007_UOttawa_MBoisgontier_Baseline_CoPv7.csv"))
 CLSA.Tra.baseline <- read.csv(here("datasets", "2304007_UOttawa_MBoisgontier_BL","2304007_UOttawa_MBoisgontier_Baseline_Trav4.csv"))
 CLSA.baseline.raw <- merge(CLSA.Com.baseline, CLSA.Tra.baseline, all=TRUE)
@@ -35,7 +35,7 @@ CLSA.baseline <- CLSA.baseline.raw %>%
                 AGE_GRP_COM, AGE_GRP_TRM, PA2_WRKHRS_NB_MCQ, 
                 AGE_NMBR_COM, AGE_NMBR_TRM) %>%
   
-  # coalesce columns from comprehensive (COM) and tracking (TRM) surveys
+  # coalesce columns from comprehensive (COM) and tracking (TRM) baseline surveys
   mutate(startdate_baseline = coalesce(startdate_COM, startdate_TRM), # to compute time difference between data collection waves
          DEP_CESD10 = coalesce(DEP_CESD10_COM, DEP_CESD10_TRM),
          ADL_DCLS = coalesce(ADL_DCLS_COM, ADL_DCLS_TRM),
@@ -79,9 +79,6 @@ CLSA.baseline <- CLSA.baseline.raw %>%
          GEN_DHDI = replace(GEN_DHDI, GEN_DHDI %in% c(9), NA),
          HUP_PRVACT_MCQ =  replace(HUP_PRVACT_MCQ, HUP_PRVACT_MCQ %in% c(8,9), NA),
          PA2_WRKHRS_NB_MCQ =  replace(PA2_WRKHRS_NB_MCQ, PA2_WRKHRS_NB_MCQ %in% c(777, 998, 999), NA))
-
-
-list (CLSA.baseline$startdate_baseline)
 
 # recode PASE scale from 1-4 to 0-3 to align with scoring manual
 # recode PASE Hrs/day to align with scoring (1/2 =1, 3 =2, 4 =3, 5 = 4)
@@ -162,7 +159,7 @@ CLSA.baseline <- CLSA.baseline %>%
       outdoor_gardening_score + caring_for_another_score + work_score
   )
 
-# Load and clean follow-up2 data (I/ADL score) ####
+## Load and clean follow-up2 data (I/ADL score)
 CLSA.Com.FU2 <- read.csv(here("datasets", "2304007_UOttawa_MBoisgontier_FUP2","2304007_UOttawa_MBoisgontier_FUP2_CoPv1-1.csv"))
 CLSA.Tra.FU2 <- read.csv(here("datasets", "2304007_UOttawa_MBoisgontier_FUP2","2304007_UOttawa_MBoisgontier_FUP2_Trav1-1.csv"))
 CLSA.FU2 <- merge(CLSA.Com.FU2, CLSA.Tra.FU2, all=TRUE) 
@@ -188,6 +185,7 @@ CLSA.FU2 <- CLSA.FU2 %>%
          IAL_HPWRK_TRF2, IAL_UNWRK_TRF2, IAL_ABLMED_TRF2, IAL_HPMED_TRF2, 
          IAL_UNMED_TRF2, IAL_ABLMO_TRF2, IAL_HPMO_TRF2, IAL_UNMO_TRF2)%>%
   
+  # coalesce columns from comprehensive (COM) and tracking (TRM) follow-up surveys
   mutate(startdate_FU2 = coalesce(startdate_COF2, startdate_TRF2),
          ADL_ABLDR = coalesce(ADL_ABLDR_COF2, ADL_ABLDR_TRF2), 
          ADL_HPDR = coalesce(ADL_HPDR_COF2, ADL_HPDR_TRF2), 
@@ -496,17 +494,10 @@ CLSA.baseline.ra $AGE_NMBR_c <- scale (CLSA.baseline.ra $AGE_NMBR, center = TRUE
 CLSA.baseline.ra $PASE_score_c <- scale (CLSA.baseline.ra $PASE_score, center = TRUE, scale = TRUE)
 CLSA.baseline.ra $log_trans_DEP_CESD10_c <- scale (CLSA.baseline.ra $log_trans_DEP_CESD10, center = TRUE, scale = TRUE)
 
-# Descriptive statistics
-mean(CLSA.baseline.arthritis$PASE_score, na.rm=T)
-sd(CLSA.baseline.arthritis$PASE_score, na.rm=T)
+### Descriptive statistics
 
-hist(CLSA.baseline.ra$PASE_score)
-hist(CLSA.baseline.ra$DEP_CESD10)
-hist(CLSA.baseline.ra$HUP_FREE_MCQ)
-hist(CLSA.baseline.ra$ADL_DCLS)
-hist(CLSA.baseline.ra$Binary_FU2_IADL.1) # 1-2 vs 3-5
-hist(CLSA.baseline.ra$Binary_FU2_IADL.2) # 1 vs 2-5
 
+#arthritis
 hist(CLSA.baseline.arthritis$PASE_score)
 hist(CLSA.baseline.arthritis$DEP_CESD10)
 hist(CLSA.baseline.arthritis$HUP_FREE_MCQ)
@@ -518,16 +509,64 @@ CLSA.baseline.arthritis %>% group_by(SEX_ASK) %>% summarise(count = n()) %>%
   mutate(percent = count / sum(count) * 100)
 CLSA.baseline.arthritis %>% group_by(AGE_GRP) %>% summarise(count = n()) %>%
   mutate(percent = count / sum(count) * 100)
+CLSA.baseline.arthritis %>% group_by(ADL_DCLS) %>% summarise(count = n()) %>%
+  mutate(percent = count / sum(count) * 100)
+CLSA.baseline.arthritis %>% group_by(HUP_FREE_MCQ) %>% summarise(count = n()) %>%
+  mutate(percent = count / sum(count) * 100)
+
+mean(CLSA.baseline.arthritis$PASE_score, na.rm=T)
+sd(CLSA.baseline.arthritis$PASE_score, na.rm=T)
+mean(CLSA.baseline.arthritis$DEP_CESD10, na.rm=T)
+sd(CLSA.baseline.arthritis$DEP_CESD10, na.rm=T)
+
+#osteoarthritis
+hist(CLSA.baseline.osteo$PASE_score)
+hist(CLSA.baseline.osteo$DEP_CESD10)
+hist(CLSA.baseline.osteo$HUP_FREE_MCQ)
+hist(CLSA.baseline.osteo$ADL_DCLS)
+hist(CLSA.baseline.osteo$Binary_FU2_IADL.1) # 1-2 vs 3-5
+hist(CLSA.baseline.osteo$Binary_FU2_IADL.2) # 
 
 CLSA.baseline.osteo %>% group_by(SEX_ASK) %>% summarise(count = n()) %>%
   mutate(percent = count / sum(count) * 100)
 CLSA.baseline.osteo %>% group_by(AGE_GRP) %>% summarise(count = n()) %>%
   mutate(percent = count / sum(count) * 100)
+CLSA.baseline.osteo %>% group_by(ADL_DCLS) %>% summarise(count = n()) %>%
+  mutate(percent = count / sum(count) * 100)
+CLSA.baseline.osteo %>% group_by(HUP_FREE_MCQ) %>% summarise(count = n()) %>%
+  mutate(percent = count / sum(count) * 100)
+
+mean(CLSA.baseline.osteo$PASE_score, na.rm=T)
+sd(CLSA.baseline.osteo$PASE_score, na.rm=T)
+mean(CLSA.baseline.osteo$DEP_CESD10, na.rm=T)
+sd(CLSA.baseline.osteo$DEP_CESD10, na.rm=T)
+
+#rheumatoid arthritis
+hist(CLSA.baseline.ra$PASE_score)
+hist(CLSA.baseline.ra$DEP_CESD10)
+hist(CLSA.baseline.ra$HUP_FREE_MCQ)
+hist(CLSA.baseline.ra$ADL_DCLS)
+hist(CLSA.baseline.ra$Binary_FU2_IADL.1) # 1-2 vs 3-5
+hist(CLSA.baseline.ra$Binary_FU2_IADL.2) # 1 vs 2-5
 
 CLSA.baseline.ra %>% group_by(SEX_ASK) %>% summarise(count = n()) %>%
   mutate(percent = count / sum(count) * 100)
 CLSA.baseline.ra %>% group_by(AGE_GRP) %>% summarise(count = n()) %>%
   mutate(percent = count / sum(count) * 100)
+CLSA.baseline.ra %>% group_by(ADL_DCLS) %>% summarise(count = n()) %>%
+  mutate(percent = count / sum(count) * 100)
+CLSA.baseline.ra %>% group_by(HUP_FREE_MCQ) %>% summarise(count = n()) %>%
+  mutate(percent = count / sum(count) * 100)
+
+mean(CLSA.baseline.ra$PASE_score, na.rm=T)
+sd(CLSA.baseline.ra$PASE_score, na.rm=T)
+mean(CLSA.baseline.ra$DEP_CESD10, na.rm=T)
+sd(CLSA.baseline.ra$DEP_CESD10, na.rm=T)
+
+
+
+
+
 
 ####  Statistical Analyses  ####
 ### Main Analyses
@@ -539,23 +578,32 @@ m1.1 <- process(data = CLSA.baseline.arthritis,
         cov = c("sex_numeric", "AGE_NMBR_c", "Binary_IADL.ADL_baseline"), 
         model = 6)
 
+# Depression 
 m1.2.1 <- lm(log_trans_DEP_CESD10_c ~ HUP_FREE_MCQ + AGE_NMBR_c + sex_numeric 
              + Binary_IADL.ADL_baseline, data = CLSA.baseline.arthritis)
 summary(m1.2.1)
 tidy(m1.2.1, conf.int = TRUE, conf.level = 0.95)%>%
   mutate(across(where(is.numeric), ~ format(.x, digits = 4, nsmall = 4)))
 
+# Physical activity
 m1.2.2 <- lm(PASE_score_c ~ HUP_FREE_MCQ + log_trans_DEP_CESD10_c + AGE_NMBR_c + sex_numeric
              + Binary_IADL.ADL_baseline, data = CLSA.baseline.arthritis)
 summary(m1.2.2)
 tidy(m1.2.2, conf.int = TRUE, conf.level = 0.95)%>%
   mutate(across(where(is.numeric), ~ format(.x, digits = 4, nsmall = 4)))
 
-# glm to obtain exponentiated log odds and p-value in scientific notation
-m1.3 <- glm(Binary_FU2_IADL.1 ~ HUP_FREE_MCQ + log_trans_DEP_CESD10_c + PASE_score_c + AGE_NMBR_c + sex_numeric 
+# Functional status (without mediators)
+m1.3.1 <- glm(Binary_FU2_IADL.1 ~ HUP_FREE_MCQ + AGE_NMBR_c + sex_numeric 
             + Binary_IADL.ADL_baseline, family = "binomial", data = CLSA.baseline.arthritis)
-summary(m1.3)
-tidy(m1.3, conf.int = TRUE, conf.level = 0.95, exponentiate = TRUE) %>%
+summary(m1.3.1)
+tidy(m1.3.1, conf.int = TRUE, conf.level = 0.95, exponentiate = TRUE) %>%
+  mutate(across(where(is.numeric), ~ format(.x, digits = 3, nsmall = 3)))
+
+# Functional status (with mediators)
+m1.3.2 <- glm(Binary_FU2_IADL.1 ~ HUP_FREE_MCQ + log_trans_DEP_CESD10_c + PASE_score_c + AGE_NMBR_c + sex_numeric 
+            + Binary_IADL.ADL_baseline, family = "binomial", data = CLSA.baseline.arthritis)
+summary(m1.3.2)
+tidy(m1.3.2, conf.int = TRUE, conf.level = 0.95, exponentiate = TRUE) %>%
   mutate(across(where(is.numeric), ~ format(.x, digits = 3, nsmall = 3)))
 
 ### Sensitivity Analyses
@@ -661,7 +709,7 @@ data <- data.frame(
                0.013, 0.007, 0.019, 0.038)
 )
 
-# Plot using ggplot2 with Viridis color scale
+# Plot using ggplot2 with Viridis color scale and setting factor order in scale_x_discrete
 ggplot(data, aes(x = Group, y = Estimate, ymin = Lower_CI, ymax = Upper_CI, color = Condition)) +
   geom_pointrange(position = position_dodge(width = 0.6), size = 0.2) +  # Smaller points
   geom_hline(yintercept = 0, linetype = "dashed", color = "gray50") +  # Add reference line at 0
