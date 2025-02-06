@@ -592,18 +592,32 @@ summary(m1.2.2)
 tidy(m1.2.2, conf.int = TRUE, conf.level = 0.95)%>%
   mutate(across(where(is.numeric), ~ format(.x, digits = 4, nsmall = 4)))
 
-# Functional status (without mediators)
+# Functional status (without both mediators)
 m1.3.1 <- glm(Binary_FU2_IADL.1 ~ HUP_FREE_MCQ + AGE_NMBR_c + sex_numeric 
             + Binary_IADL.ADL_baseline, family = "binomial", data = CLSA.baseline.arthritis)
 summary(m1.3.1)
 tidy(m1.3.1, conf.int = TRUE, conf.level = 0.95, exponentiate = TRUE) %>%
   mutate(across(where(is.numeric), ~ format(.x, digits = 3, nsmall = 3)))
 
-# Functional status (with mediators)
-m1.3.2 <- glm(Binary_FU2_IADL.1 ~ HUP_FREE_MCQ + log_trans_DEP_CESD10_c + PASE_score_c + AGE_NMBR_c + sex_numeric 
-            + Binary_IADL.ADL_baseline, family = "binomial", data = CLSA.baseline.arthritis)
+# Functional status (without depressive symptoms)
+m1.3.2 <- glm(Binary_FU2_IADL.1 ~ HUP_FREE_MCQ + PASE_score_c + AGE_NMBR_c + sex_numeric 
+              + Binary_IADL.ADL_baseline, family = "binomial", data = CLSA.baseline.arthritis)
 summary(m1.3.2)
 tidy(m1.3.2, conf.int = TRUE, conf.level = 0.95, exponentiate = TRUE) %>%
+  mutate(across(where(is.numeric), ~ format(.x, digits = 3, nsmall = 3)))
+
+# Functional status (without physical actvity)
+m1.3.3 <- glm(Binary_FU2_IADL.1 ~ HUP_FREE_MCQ + log_trans_DEP_CESD10_c + AGE_NMBR_c + sex_numeric 
+              + Binary_IADL.ADL_baseline, family = "binomial", data = CLSA.baseline.arthritis)
+summary(m1.3.3)
+tidy(m1.3.3, conf.int = TRUE, conf.level = 0.95, exponentiate = TRUE) %>%
+  mutate(across(where(is.numeric), ~ format(.x, digits = 3, nsmall = 3)))
+
+# Functional status (with both mediators)
+m1.3.4 <- glm(Binary_FU2_IADL.1 ~ HUP_FREE_MCQ + log_trans_DEP_CESD10_c + PASE_score_c + AGE_NMBR_c + sex_numeric 
+            + Binary_IADL.ADL_baseline, family = "binomial", data = CLSA.baseline.arthritis)
+summary(m1.3.4)
+tidy(m1.3.4, conf.int = TRUE, conf.level = 0.95, exponentiate = TRUE) %>%
   mutate(across(where(is.numeric), ~ format(.x, digits = 3, nsmall = 3)))
 
 ### Sensitivity Analyses
